@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Export LC + XL Bill Lifecycle Flow</title>
+  <style>
+    :root {
+      --bg: #f7f4ea;
+      --paper: #fffefa;
+      --ink: #202a36;
+      --muted: #637083;
+      --line: #d6dde7;
+      --blue: #1f5c9a;
+      --blue-soft: #e6f1ff;
+      --green: #197c58;
+      --green-soft: #e7f7ee;
+      --red: #b64f49;
+      --red-soft: #ffe9e6;
+      --yellow: #fff1a8;
+      --shadow: 0 18px 46px rgba(32, 42, 54, 0.12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(32, 42, 54, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(32, 42, 54, 0.035) 1px, transparent 1px),
+        var(--bg);
+      background-size: 28px 28px;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: 28px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr minmax(420px, 680px);
+      gap: 22px;
+      align-items: start;
+      max-width: 1780px;
+      margin: 0 auto 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 3vw, 54px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--blue);
+      font-size: 18px;
+      line-height: 1.45;
+    }
+
+    .legend {
+      padding: 14px 16px;
+      border: 2px solid var(--blue);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .legend b { color: var(--blue); }
+
+    .fetch-box {
+      max-width: 1780px;
+      margin: 0 auto 16px;
+      background: var(--paper);
+      border: 2px solid var(--green);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .fetch-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: start;
+      padding: 14px 16px;
+      background: var(--green-soft);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .fetch-head h2 {
+      margin: 0;
+      color: var(--green);
+      font-size: 22px;
+      line-height: 1.15;
+    }
+
+    .fetch-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 14px;
+    }
+
+    .fetch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .fetch-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .fetch-card h3 {
+      margin: 0;
+      padding: 10px 12px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      border-bottom: 1px solid var(--line);
+      font-size: 16px;
+    }
+
+    .fetch-card pre {
+      margin: 0;
+      padding: 12px;
+      overflow-x: auto;
+      color: var(--ink);
+      background: #fbfcff;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre;
+    }
+
+    .fetch-note {
+      padding: 0 14px 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1780px;
+      margin: 0 auto 16px;
+    }
+
+    .mode {
+      display: inline-flex;
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      box-shadow: 0 8px 22px rgba(32, 42, 54, 0.08);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: 0;
+    }
+
+    button:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    .mode button[aria-pressed="true"] {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+
+    .tabs {
+      max-width: 1780px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .tab {
+      min-height: 88px;
+      text-align: left;
+      border: 2px solid var(--line);
+      background: var(--paper);
+      box-shadow: 0 8px 22px rgba(32, 42, 54, 0.08);
+    }
+
+    .tab[aria-selected="true"] {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .tab .num {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .tab .name {
+      display: block;
+      font-size: 16px;
+      line-height: 1.18;
+    }
+
+    .tab .amount {
+      display: block;
+      margin-top: 8px;
+      color: var(--green);
+      font-size: 13px;
+    }
+
+    main {
+      max-width: 1780px;
+      margin: 16px auto 0;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+
+    .side,
+    .panel {
+      background: var(--paper);
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .side {
+      padding: 18px;
+      align-self: start;
+      position: sticky;
+      top: 16px;
+    }
+
+    .kicker {
+      color: var(--blue);
+      font-weight: 900;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .side h2 {
+      margin: 8px 0 10px;
+      font-size: 26px;
+      line-height: 1.15;
+    }
+
+    .side p {
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 0 0 14px;
+    }
+
+    .metric {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    .metric strong { color: var(--ink); }
+    .metric span:last-child { font-weight: 900; color: var(--green); }
+
+    .rule {
+      margin-top: 14px;
+      background: var(--yellow);
+      border: 1px solid #d6b54b;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.42;
+    }
+
+    .panel {
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: start;
+      padding: 18px 20px;
+      border-bottom: 2px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+    }
+
+    .panel-head p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 320px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 900;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .badge.green { background: var(--green-soft); color: var(--green); }
+    .badge.red { background: var(--red-soft); color: var(--red); }
+
+    .mode-banner {
+      margin: 16px 16px 0;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #d6b54b;
+      background: var(--yellow);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .tables {
+      display: grid;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .table-card {
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .table-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--blue-soft);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .table-title h3 {
+      margin: 0;
+      color: var(--blue);
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f1f5fa;
+      color: #364457;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tbody tr:nth-child(even) { background: #f8fbff; }
+
+    .state-before {
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .state-after {
+      color: var(--red);
+      font-weight: 900;
+    }
+
+    .type-life {
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .type-inst {
+      color: var(--red);
+      font-weight: 900;
+    }
+
+    .empty {
+      padding: 16px;
+      color: var(--muted);
+      background: #f6f6f6;
+      font-size: 14px;
+    }
+
+    .explain {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 16px;
+      border-top: 2px solid var(--line);
+      background: #fffdf4;
+    }
+
+    .explain-card {
+      border: 1px solid #d6b54b;
+      border-radius: 8px;
+      background: #fff8c9;
+      padding: 12px;
+    }
+
+    .explain-card b {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--red);
+    }
+
+    .explain-card span {
+      color: var(--ink);
+      line-height: 1.35;
+      font-size: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      header,
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .tabs {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .fetch-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        position: static;
+      }
+
+      .panel-head {
+        display: block;
+      }
+
+      .badges {
+        justify-content: flex-start;
+        margin-top: 12px;
+      }
+
+      .explain {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .toolbar, .tabs { display: none; }
+      .app { padding: 0; }
+      header, main { max-width: none; }
+      main { grid-template-columns: 1fr; }
+      .side { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Export LC + XL Bill Lifecycle</h1>
+        <p class="subtitle">Backward-compatible view: the LC version column is named <b>VERSION</b>. Bills use <b>CLAIM_ID</b> plus <b>CLAIM_VERSION</b>.</p>
+      </div>
+      <div class="legend">
+        <div><b>INSTRUMENT</b> has INSTRUMENT_ID, VERSION, LATEST_LIFECYCLE_ID, REFERENCE_NO, BRANCH_NAME.</div>
+        <div><b>Before Control</b> shows mutable lifecycle rows only for the current step.</div>
+        <div><b>After Control</b> expands the view and shows the copied INSTRUMENT snapshot rows.</div>
+        <div><b>VERSION</b> is the Export LC version. <b>CLAIM_VERSION</b> is the bill version.</div>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="mode" aria-label="Control state">
+        <button type="button" id="beforeBtn" aria-pressed="true">Before Control</button>
+        <button type="button" id="afterBtn" aria-pressed="false">After Control Expanded</button>
+      </div>
+      <div class="actions">
+        <button type="button" id="prevBtn">Previous</button>
+        <button type="button" id="nextBtn">Next</button>
+        <button type="button" onclick="window.print()">Print</button>
+      </div>
+    </div>
+
+    <section class="fetch-box" aria-label="UI fetch rules">
+      <div class="fetch-head">
+        <div>
+          <h2>UI Fetch Rules</h2>
+          <p>Use these query patterns when the UI needs to decide whether to show Export LC data, XL bill data, or a pending lifecycle transaction.</p>
+        </div>
+        <div class="badge green">Best place to explain screen loading</div>
+      </div>
+      <div class="fetch-grid">
+        <article class="fetch-card">
+          <h3>Current EL Screen</h3>
+          <pre>select *
+from instrument
+where instrument_id = :instrument_id;
+
+-- Then use INSTRUMENT.VERSION
+select *
+from lc_details
+where link_type = 'INSTRUMENT'
+  and link_id = :instrument_id
+  and claim_id is null
+  and version = :version;
+
+select *
+from party_details
+where link_type = 'INSTRUMENT'
+  and link_id = :instrument_id
+  and party_scope = 'EL'
+  and claim_id is null
+  and version = :version;</pre>
+        </article>
+        <article class="fetch-card">
+          <h3>Selected XL Bill Screen</h3>
+          <pre>select max(claim_version)
+from bill_details
+where link_type = 'INSTRUMENT'
+  and link_id = :instrument_id
+  and claim_id = :claim_id;
+
+select *
+from bill_details
+where link_type = 'INSTRUMENT'
+  and link_id = :instrument_id
+  and claim_id = :claim_id
+  and claim_version = :claim_version;
+
+select *
+from party_details
+where link_type = 'INSTRUMENT'
+  and link_id = :instrument_id
+  and party_scope = 'XL'
+  and claim_id = :claim_id
+  and claim_version = :claim_version;</pre>
+        </article>
+        <article class="fetch-card">
+          <h3>Pending Lifecycle Screen</h3>
+          <pre>select *
+from life_cycle
+where lcy_id = :lifecycle_id;
+
+-- EL work-in-progress
+select *
+from lc_details
+where link_type = 'LIFE_CYCLE'
+  and link_id = :lifecycle_id
+  and claim_id is null;
+
+-- XL work-in-progress
+select *
+from bill_details
+where link_type = 'LIFE_CYCLE'
+  and link_id = :lifecycle_id
+  and claim_id = :claim_id;</pre>
+        </article>
+      </div>
+      <div class="fetch-note">
+        Simple UI rule: EL tabs read rows where <b>CLAIM_ID is null</b>. XL tabs read rows where <b>CLAIM_ID is filled</b>. Controlled screens use <b>LINK_TYPE = INSTRUMENT</b>; editable screens use <b>LINK_TYPE = LIFE_CYCLE</b>.
+      </div>
+    </section>
+
+    <nav class="tabs" id="tabs" aria-label="Lifecycle stages"></nav>
+
+    <main>
+      <aside class="side" id="side"></aside>
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 id="stageTitle"></h2>
+            <p id="stageDescription"></p>
+          </div>
+          <div class="badges" id="badges"></div>
+        </div>
+        <div class="mode-banner" id="modeBanner"></div>
+        <div class="tables" id="tables"></div>
+        <div class="explain" id="explain"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const tableOrder = ["INSTRUMENT", "LIFE_CYCLE", "LC_DETAILS", "PARTY_DETAILS", "BILL_DETAILS"];
+    const stages = [
+      {
+        number: "1",
+        tab: "EL Advising",
+        amount: "100K",
+        title: "1. EL Advising / New",
+        description: "The LC is captured in mutable lifecycle rows first. After control, instrument 1001 is created and the controlled attribute rows are copied as instrument snapshots.",
+        badges: ["VERSION 1", "CLAIM_ID null", "CLAIM_VERSION null"],
+        metrics: { "EL amount": "100K", "Unutilized": "100K", "LC liability": "100K", "Bill outstanding": "0" },
+        rule: "This step demonstrates the first creation: before control there is no INSTRUMENT row; after control, INSTRUMENT 1001 appears.",
+        explanations: [
+          ["Before Control", "Only LIFE_CYCLE rows exist for the current transaction. LINK_TYPE is LIFE_CYCLE."],
+          ["After Control", "The system creates INSTRUMENT 1001 and copies controlled rows with LINK_TYPE = INSTRUMENT."],
+          ["Version", "VERSION = 1 because this is the first controlled Export LC state."]
+        ],
+        tables: {
+          INSTRUMENT: [
+            { _state: "after", INSTRUMENT_ID: "1001", VERSION: "1", LATEST_LIFECYCLE_ID: "5001", REFERENCE_NO: "EL-2026-0001", BRANCH_NAME: "Mumbai Main" }
+          ],
+          LIFE_CYCLE: [
+            { _state: "before", LCY_ID: "5001", INSTRUMENT_ID: "temp/new", EVENT: "EL_ADVISE", STATUS: "INPUT", VERSION: "1", CLAIM_ID: "null", CLAIM_VERSION: "null" },
+            { _state: "after", LCY_ID: "5001", INSTRUMENT_ID: "1001", EVENT: "EL_ADVISE", STATUS: "CONTROLLED", VERSION: "1", CLAIM_ID: "null", CLAIM_VERSION: "null" }
+          ],
+          LC_DETAILS: [
+            { _state: "before", LINK_ID: "5001", LINK_TYPE: "LIFE_CYCLE", VERSION: "1", CLAIM_ID: "null", CLAIM_VERSION: "null", EL_AMOUNT: "100K", EXPIRY: "2026-12-31", UNUTILIZED: "100K", LC_LIABILITY: "100K" },
+            { _state: "after", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "1", CLAIM_ID: "null", CLAIM_VERSION: "null", EL_AMOUNT: "100K", EXPIRY: "2026-12-31", UNUTILIZED: "100K", LC_LIABILITY: "100K" }
+          ],
+          PARTY_DETAILS: [
+            { _state: "before", PARTY_ID: "8001", LINK_ID: "5001", LINK_TYPE: "LIFE_CYCLE", VERSION: "1", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" },
+            { _state: "before", PARTY_ID: "8002", LINK_ID: "5001", LINK_TYPE: "LIFE_CYCLE", VERSION: "1", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "APPLICANT", PARTY_NAME: "Global Buyer" },
+            { _state: "after", PARTY_ID: "8003", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "1", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" },
+            { _state: "after", PARTY_ID: "8004", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "1", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "APPLICANT", PARTY_NAME: "Global Buyer" }
+          ],
+          BILL_DETAILS: []
+        }
+      },
+      {
+        number: "2",
+        tab: "EL Amendment #1",
+        amount: "120K",
+        title: "2. EL Amendment #1",
+        description: "The latest controlled instrument snapshot is copied into a new lifecycle. The amendment increases amount and expiry, then control creates VERSION 2 instrument snapshots.",
+        badges: ["VERSION 2", "CLAIM_ID null", "+20K"],
+        metrics: { "EL amount": "120K", "Unutilized": "120K", "LC liability": "120K", "Bill outstanding": "0" },
+        rule: "VERSION remains the Export LC version. Because this is EL-level data, CLAIM_ID and CLAIM_VERSION stay null.",
+        explanations: [
+          ["Before Control", "Lifecycle 5002 is mutable and carries the proposed amended LC values."],
+          ["After Control", "INSTRUMENT.VERSION becomes 2 and LATEST_LIFECYCLE_ID becomes 5002."],
+          ["Amount", "The authorized amount changes from 100K to 120K."]
+        ],
+        tables: {
+          INSTRUMENT: [
+            { _state: "after", INSTRUMENT_ID: "1001", VERSION: "2", LATEST_LIFECYCLE_ID: "5002", REFERENCE_NO: "EL-2026-0001", BRANCH_NAME: "Mumbai Main" }
+          ],
+          LIFE_CYCLE: [
+            { _state: "before", LCY_ID: "5002", INSTRUMENT_ID: "1001", EVENT: "EL_AMEND", STATUS: "INPUT", VERSION: "2", CLAIM_ID: "null", CLAIM_VERSION: "null" },
+            { _state: "after", LCY_ID: "5002", INSTRUMENT_ID: "1001", EVENT: "EL_AMEND", STATUS: "CONTROLLED", VERSION: "2", CLAIM_ID: "null", CLAIM_VERSION: "null" }
+          ],
+          LC_DETAILS: [
+            { _state: "before", LINK_ID: "5002", LINK_TYPE: "LIFE_CYCLE", VERSION: "2", CLAIM_ID: "null", CLAIM_VERSION: "null", EL_AMOUNT: "120K", EXPIRY: "2027-03-31", UNUTILIZED: "120K", LC_LIABILITY: "120K" },
+            { _state: "after", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "2", CLAIM_ID: "null", CLAIM_VERSION: "null", EL_AMOUNT: "120K", EXPIRY: "2027-03-31", UNUTILIZED: "120K", LC_LIABILITY: "120K" }
+          ],
+          PARTY_DETAILS: [
+            { _state: "before", PARTY_ID: "8005", LINK_ID: "5002", LINK_TYPE: "LIFE_CYCLE", VERSION: "2", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" },
+            { _state: "after", PARTY_ID: "8006", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "2", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" }
+          ],
+          BILL_DETAILS: []
+        }
+      },
+      {
+        number: "3",
+        tab: "XL Bill New",
+        amount: "CLM-7001 / 40K",
+        title: "3. XL Bill New / Presentation",
+        description: "A bill is presented under the Export LC. Before control, bill rows are mutable under lifecycle 5003. After control, bill snapshots are copied under instrument 1001.",
+        badges: ["VERSION 2", "CLAIM_ID CLM-7001", "CLAIM_VERSION 1"],
+        metrics: { "EL amount": "120K", "Unutilized": "80K", "LC liability": "120K", "Bill outstanding": "40K" },
+        rule: "XL rows use the same VERSION as the parent LC, plus CLAIM_ID and CLAIM_VERSION for bill identity and bill lifecycle version.",
+        explanations: [
+          ["Party split", "EL party rows have PARTY_SCOPE = EL and CLAIM_ID = null. XL party rows have PARTY_SCOPE = XL and CLAIM_ID = CLM-7001."],
+          ["After Control", "Bill rows copy to LINK_ID = 1001, but CLAIM_ID + CLAIM_VERSION make them bill snapshots."],
+          ["Amount", "120K LC amount minus 40K bill utilization leaves 80K unutilized."]
+        ],
+        tables: {
+          INSTRUMENT: [
+            { _state: "after", INSTRUMENT_ID: "1001", VERSION: "2", LATEST_LIFECYCLE_ID: "5003", REFERENCE_NO: "EL-2026-0001", BRANCH_NAME: "Mumbai Main" }
+          ],
+          LIFE_CYCLE: [
+            { _state: "before", LCY_ID: "5003", INSTRUMENT_ID: "1001", EVENT: "BILL_NEW", STATUS: "INPUT", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1" },
+            { _state: "after", LCY_ID: "5003", INSTRUMENT_ID: "1001", EVENT: "BILL_NEW", STATUS: "CONTROLLED", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1" }
+          ],
+          LC_DETAILS: [
+            { _state: "before", LINK_ID: "5003", LINK_TYPE: "LIFE_CYCLE", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1", EL_AMOUNT: "120K", EXPIRY: "2027-03-31", UNUTILIZED: "80K", LC_LIABILITY: "120K" },
+            { _state: "after", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1", EL_AMOUNT: "120K", EXPIRY: "2027-03-31", UNUTILIZED: "80K", LC_LIABILITY: "120K" }
+          ],
+          PARTY_DETAILS: [
+            { _state: "before", PARTY_ID: "8101", LINK_ID: "5003", LINK_TYPE: "LIFE_CYCLE", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1", PARTY_SCOPE: "XL", PARTY_ROLE: "MANUFACTURER", PARTY_NAME: "ABC Factory" },
+            { _state: "before", PARTY_ID: "8102", LINK_ID: "5003", LINK_TYPE: "LIFE_CYCLE", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1", PARTY_SCOPE: "XL", PARTY_ROLE: "PRESENTING_BANK", PARTY_NAME: "XYZ Bank" },
+            { _state: "after", PARTY_ID: "8111", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1", PARTY_SCOPE: "XL", PARTY_ROLE: "MANUFACTURER", PARTY_NAME: "ABC Factory" },
+            { _state: "after", PARTY_ID: "8112", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1", PARTY_SCOPE: "XL", PARTY_ROLE: "PRESENTING_BANK", PARTY_NAME: "XYZ Bank" }
+          ],
+          BILL_DETAILS: [
+            { _state: "before", BILL_ID: "7001", LINK_ID: "5003", LINK_TYPE: "LIFE_CYCLE", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1", BILL_AMOUNT: "40K USD", BILL_STATUS: "INPUT", BILL_OUTSTANDING: "40K" },
+            { _state: "after", BILL_ID: "7002", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "2", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "1", BILL_AMOUNT: "40K USD", BILL_STATUS: "CONTROLLED", BILL_OUTSTANDING: "40K" }
+          ]
+        }
+      },
+      {
+        number: "4",
+        tab: "EL Amendment #2",
+        amount: "150K",
+        title: "4. EL Amendment #2",
+        description: "The LC is amended again after the bill exists. The LC version moves to VERSION 3.",
+        badges: ["VERSION 3", "CLAIM_ID null", "+30K"],
+        metrics: { "EL amount": "150K", "Unutilized": "110K", "LC liability": "150K", "Bill outstanding": "40K" },
+        rule: "This is an EL amendment, so CLAIM_ID is null. Existing bill CLM-7001 remains CLAIM_VERSION 1.",
+        explanations: [
+          ["Before Control", "Lifecycle 5004 contains mutable EL amendment values."],
+          ["After Control", "Instrument 1001 is updated to VERSION 3 and latest lifecycle 5004."],
+          ["Amount", "150K authorized minus existing 40K bill utilization equals 110K unutilized."]
+        ],
+        tables: {
+          INSTRUMENT: [
+            { _state: "after", INSTRUMENT_ID: "1001", VERSION: "3", LATEST_LIFECYCLE_ID: "5004", REFERENCE_NO: "EL-2026-0001", BRANCH_NAME: "Mumbai Main" }
+          ],
+          LIFE_CYCLE: [
+            { _state: "before", LCY_ID: "5004", INSTRUMENT_ID: "1001", EVENT: "EL_AMEND", STATUS: "INPUT", VERSION: "3", CLAIM_ID: "null", CLAIM_VERSION: "null" },
+            { _state: "after", LCY_ID: "5004", INSTRUMENT_ID: "1001", EVENT: "EL_AMEND", STATUS: "CONTROLLED", VERSION: "3", CLAIM_ID: "null", CLAIM_VERSION: "null" }
+          ],
+          LC_DETAILS: [
+            { _state: "before", LINK_ID: "5004", LINK_TYPE: "LIFE_CYCLE", VERSION: "3", CLAIM_ID: "null", CLAIM_VERSION: "null", EL_AMOUNT: "150K", EXPIRY: "2027-03-31", UNUTILIZED: "110K", LC_LIABILITY: "150K" },
+            { _state: "after", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "3", CLAIM_ID: "null", CLAIM_VERSION: "null", EL_AMOUNT: "150K", EXPIRY: "2027-03-31", UNUTILIZED: "110K", LC_LIABILITY: "150K" }
+          ],
+          PARTY_DETAILS: [
+            { _state: "before", PARTY_ID: "8007", LINK_ID: "5004", LINK_TYPE: "LIFE_CYCLE", VERSION: "3", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" },
+            { _state: "after", PARTY_ID: "8008", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "3", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" }
+          ],
+          BILL_DETAILS: []
+        }
+      },
+      {
+        number: "5",
+        tab: "XL Bill Settle",
+        amount: "Bill out = 0",
+        title: "5. XL Bill Settle",
+        description: "The bill is settled. This creates CLAIM_VERSION 2 for CLM-7001 while parent LC VERSION remains 3.",
+        badges: ["VERSION 3", "CLAIM_ID CLM-7001", "CLAIM_VERSION 2"],
+        metrics: { "EL amount": "150K", "Unutilized": "110K", "LC liability": "110K", "Bill outstanding": "0" },
+        rule: "Settlement changes the bill claim version. It does not create the 150K or 160K LC amount.",
+        explanations: [
+          ["Before Control", "Settlement is worked under lifecycle 5005 with LINK_TYPE = LIFE_CYCLE."],
+          ["After Control", "Bill settlement snapshots copy to LINK_ID = 1001 with CLAIM_VERSION 2."],
+          ["Liability", "Bill outstanding becomes 0, so total liability reduces to 110K."]
+        ],
+        tables: {
+          INSTRUMENT: [
+            { _state: "after", INSTRUMENT_ID: "1001", VERSION: "3", LATEST_LIFECYCLE_ID: "5005", REFERENCE_NO: "EL-2026-0001", BRANCH_NAME: "Mumbai Main" }
+          ],
+          LIFE_CYCLE: [
+            { _state: "before", LCY_ID: "5005", INSTRUMENT_ID: "1001", EVENT: "BILL_SETTLE", STATUS: "INPUT", VERSION: "3", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "2" },
+            { _state: "after", LCY_ID: "5005", INSTRUMENT_ID: "1001", EVENT: "BILL_SETTLE", STATUS: "CONTROLLED", VERSION: "3", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "2" }
+          ],
+          LC_DETAILS: [
+            { _state: "before", LINK_ID: "5005", LINK_TYPE: "LIFE_CYCLE", VERSION: "3", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "2", EL_AMOUNT: "150K", EXPIRY: "2027-03-31", UNUTILIZED: "110K", LC_LIABILITY: "110K" },
+            { _state: "after", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "3", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "2", EL_AMOUNT: "150K", EXPIRY: "2027-03-31", UNUTILIZED: "110K", LC_LIABILITY: "110K" }
+          ],
+          PARTY_DETAILS: [
+            { _state: "before", PARTY_ID: "8113", LINK_ID: "5005", LINK_TYPE: "LIFE_CYCLE", VERSION: "3", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "2", PARTY_SCOPE: "XL", PARTY_ROLE: "MANUFACTURER", PARTY_NAME: "ABC Factory" },
+            { _state: "after", PARTY_ID: "8114", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "3", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "2", PARTY_SCOPE: "XL", PARTY_ROLE: "MANUFACTURER", PARTY_NAME: "ABC Factory" }
+          ],
+          BILL_DETAILS: [
+            { _state: "before", BILL_ID: "7003", LINK_ID: "5005", LINK_TYPE: "LIFE_CYCLE", VERSION: "3", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "2", BILL_AMOUNT: "40K USD", BILL_STATUS: "SETTLE_INPUT", BILL_OUTSTANDING: "40K" },
+            { _state: "after", BILL_ID: "7004", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "3", CLAIM_ID: "CLM-7001", CLAIM_VERSION: "2", BILL_AMOUNT: "40K USD", BILL_STATUS: "SETTLED", BILL_OUTSTANDING: "0" }
+          ]
+        }
+      },
+      {
+        number: "6",
+        tab: "EL Amendment #3",
+        amount: "160K",
+        title: "6. EL Amendment #3",
+        description: "A later EL amendment increases the LC amount again and extends expiry. This becomes VERSION 4.",
+        badges: ["VERSION 4", "CLAIM_ID null", "+10K"],
+        metrics: { "EL amount": "160K", "Unutilized": "120K", "LC liability": "120K", "Bill outstanding": "0" },
+        rule: "160K comes from this EL amendment. Settlement did not create this amount.",
+        explanations: [
+          ["Before Control", "Lifecycle 5006 contains mutable amendment values."],
+          ["After Control", "INSTRUMENT.VERSION becomes 4 and LATEST_LIFECYCLE_ID becomes 5006."],
+          ["Amount", "160K authorized minus 40K already utilized/settled gives 120K unutilized."]
+        ],
+        tables: {
+          INSTRUMENT: [
+            { _state: "after", INSTRUMENT_ID: "1001", VERSION: "4", LATEST_LIFECYCLE_ID: "5006", REFERENCE_NO: "EL-2026-0001", BRANCH_NAME: "Mumbai Main" }
+          ],
+          LIFE_CYCLE: [
+            { _state: "before", LCY_ID: "5006", INSTRUMENT_ID: "1001", EVENT: "EL_AMEND", STATUS: "INPUT", VERSION: "4", CLAIM_ID: "null", CLAIM_VERSION: "null" },
+            { _state: "after", LCY_ID: "5006", INSTRUMENT_ID: "1001", EVENT: "EL_AMEND", STATUS: "CONTROLLED", VERSION: "4", CLAIM_ID: "null", CLAIM_VERSION: "null" }
+          ],
+          LC_DETAILS: [
+            { _state: "before", LINK_ID: "5006", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "null", CLAIM_VERSION: "null", EL_AMOUNT: "160K", EXPIRY: "2027-06-30", UNUTILIZED: "120K", LC_LIABILITY: "120K" },
+            { _state: "after", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "null", CLAIM_VERSION: "null", EL_AMOUNT: "160K", EXPIRY: "2027-06-30", UNUTILIZED: "120K", LC_LIABILITY: "120K" }
+          ],
+          PARTY_DETAILS: [
+            { _state: "before", PARTY_ID: "8009", LINK_ID: "5006", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" },
+            { _state: "after", PARTY_ID: "8010", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" }
+          ],
+          BILL_DETAILS: []
+        }
+      }
+    ];
+
+    let active = 0;
+    let mode = "before";
+
+    const tabsEl = document.getElementById("tabs");
+    const sideEl = document.getElementById("side");
+    const tablesEl = document.getElementById("tables");
+    const explainEl = document.getElementById("explain");
+    const stageTitleEl = document.getElementById("stageTitle");
+    const stageDescriptionEl = document.getElementById("stageDescription");
+    const badgesEl = document.getElementById("badges");
+    const modeBannerEl = document.getElementById("modeBanner");
+    const beforeBtn = document.getElementById("beforeBtn");
+    const afterBtn = document.getElementById("afterBtn");
+
+    function visibleRows(rows) {
+      if (mode === "before") return rows.filter(row => row._state === "before");
+      return rows;
+    }
+
+    function renderTabs() {
+      tabsEl.innerHTML = stages.map((stage, index) => `
+        <button class="tab" type="button" aria-selected="${index === active}" data-index="${index}">
+          <span class="num">Step ${stage.number}</span>
+          <span class="name">${stage.tab}</span>
+          <span class="amount">${stage.amount}</span>
+        </button>
+      `).join("");
+
+      tabsEl.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          active = Number(tab.dataset.index);
+          render();
+        });
+      });
+    }
+
+    function renderSide(stage) {
+      const metrics = Object.entries(stage.metrics).map(([label, value]) => `
+        <div class="metric"><strong>${label}</strong><span>${value}</span></div>
+      `).join("");
+
+      sideEl.innerHTML = `
+        <div class="kicker">Current Step</div>
+        <h2>${stage.tab}</h2>
+        <p>${stage.description}</p>
+        ${metrics}
+        <div class="rule">${stage.rule}</div>
+      `;
+    }
+
+    function classFor(header, value) {
+      if (header === "STATE" && value === "BEFORE_CONTROL") return "state-before";
+      if (header === "STATE" && value === "AFTER_CONTROL") return "state-after";
+      if (value === "LIFE_CYCLE") return "type-life";
+      if (value === "INSTRUMENT") return "type-inst";
+      return "";
+    }
+
+    function renderTable(name, rows) {
+      const visible = visibleRows(rows);
+      if (!visible.length) {
+        const msg = mode === "before"
+          ? `No current before-control rows in ${name}.`
+          : `No rows in ${name} for this step.`;
+        return `
+          <section class="table-card">
+            <div class="table-title"><h3>${name}</h3><span class="hint">0 rows</span></div>
+            <div class="empty">${msg}</div>
+          </section>
+        `;
+      }
+
+      const headers = ["STATE", ...Object.keys(visible[0]).filter(key => key !== "_state")];
+      const body = visible.map(row => `
+        <tr>
+          ${headers.map(header => {
+            const value = header === "STATE"
+              ? (row._state === "before" ? "BEFORE_CONTROL" : "AFTER_CONTROL")
+              : row[header];
+            return `<td class="${classFor(header, value)}">${value}</td>`;
+          }).join("")}
+        </tr>
+      `).join("");
+
+      return `
+        <section class="table-card">
+          <div class="table-title"><h3>${name}</h3><span class="hint">${visible.length} visible row${visible.length === 1 ? "" : "s"}</span></div>
+          <div class="scroll">
+            <table>
+              <thead><tr>${headers.map(header => `<th>${header}</th>`).join("")}</tr></thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderExplanations(stage) {
+      explainEl.innerHTML = stage.explanations.map(([title, body]) => `
+        <div class="explain-card"><b>${title}</b><span>${body}</span></div>
+      `).join("");
+    }
+
+    function renderMode() {
+      beforeBtn.setAttribute("aria-pressed", String(mode === "before"));
+      afterBtn.setAttribute("aria-pressed", String(mode === "after"));
+      modeBannerEl.innerHTML = mode === "before"
+        ? "<b>Before Control:</b> showing only mutable rows for this lifecycle. Instrument snapshot rows are hidden."
+        : "<b>After Control Expanded:</b> showing the lifecycle row plus the copied instrument snapshot rows created by control.";
+    }
+
+    function render() {
+      const stage = stages[active];
+      renderTabs();
+      renderMode();
+      renderSide(stage);
+      stageTitleEl.textContent = stage.title;
+      stageDescriptionEl.textContent = stage.description;
+      badgesEl.innerHTML = stage.badges.map((badge, index) => {
+        const color = badge.includes("CLM") ? "green" : index === 2 ? "red" : "";
+        return `<span class="badge ${color}">${badge}</span>`;
+      }).join("");
+      tablesEl.innerHTML = tableOrder.map(name => renderTable(name, stage.tables[name] || [])).join("");
+      renderExplanations(stage);
+    }
+
+    beforeBtn.addEventListener("click", () => {
+      mode = "before";
+      render();
+    });
+
+    afterBtn.addEventListener("click", () => {
+      mode = "after";
+      render();
+    });
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      active = (active + stages.length - 1) % stages.length;
+      render();
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      active = (active + 1) % stages.length;
+      render();
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "ArrowRight") {
+        active = (active + 1) % stages.length;
+        render();
+      }
+      if (event.key === "ArrowLeft") {
+        active = (active + stages.length - 1) % stages.length;
+        render();
+      }
+      if (event.key.toLowerCase() === "b") {
+        mode = "before";
+        render();
+      }
+      if (event.key.toLowerCase() === "a") {
+        mode = "after";
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

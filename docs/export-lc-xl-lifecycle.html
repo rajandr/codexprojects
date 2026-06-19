@@ -199,7 +199,7 @@
       max-width: 1780px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(6, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 10px;
     }
 
@@ -587,7 +587,14 @@ where link_type = 'INSTRUMENT'
         </article>
         <article class="fetch-card">
           <h3>Selected XL Bill Screen</h3>
-          <pre>select max(claim_version)
+          <pre>-- List bills under the EL
+select distinct claim_id
+from bill_details
+where link_type = 'INSTRUMENT'
+  and link_id = :instrument_id;
+
+-- Open selected bill
+select max(claim_version)
 from bill_details
 where link_type = 'INSTRUMENT'
   and link_id = :instrument_id
@@ -862,6 +869,82 @@ where link_type = 'LIFE_CYCLE'
             { _state: "after", PARTY_ID: "8010", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "null", CLAIM_VERSION: "null", PARTY_SCOPE: "EL", PARTY_ROLE: "BENEFICIARY", PARTY_NAME: "ABC Exports" }
           ],
           BILL_DETAILS: []
+        }
+      },
+      {
+        number: "7",
+        tab: "XL Bill #2 New",
+        amount: "CLM-7002 / 30K",
+        title: "7. XL Bill #2 New / Presentation",
+        description: "A second bill is presented under the same Export LC. It receives a different CLAIM_ID, so its lifecycle and parties do not mix with CLM-7001.",
+        badges: ["VERSION 4", "CLAIM_ID CLM-7002", "CLAIM_VERSION 1"],
+        metrics: { "EL amount": "160K", "Unutilized": "90K", "LC liability": "120K", "Bill outstanding": "30K" },
+        rule: "Multiple bills under the same EL are separated by CLAIM_ID. CLM-7001 and CLM-7002 can both point to instrument 1001.",
+        explanations: [
+          ["Second bill", "CLM-7002 is a new claim under the same instrument 1001 and current LC VERSION 4."],
+          ["After Control", "Rows copy to LINK_ID = 1001 with CLAIM_ID = CLM-7002 and CLAIM_VERSION = 1."],
+          ["Amount", "120K available after prior lifecycle minus 30K second bill leaves 90K unutilized."]
+        ],
+        tables: {
+          INSTRUMENT: [
+            { _state: "after", INSTRUMENT_ID: "1001", VERSION: "4", LATEST_LIFECYCLE_ID: "5007", REFERENCE_NO: "EL-2026-0001", BRANCH_NAME: "Mumbai Main" }
+          ],
+          LIFE_CYCLE: [
+            { _state: "before", LCY_ID: "5007", INSTRUMENT_ID: "1001", EVENT: "BILL_NEW", STATUS: "INPUT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1" },
+            { _state: "after", LCY_ID: "5007", INSTRUMENT_ID: "1001", EVENT: "BILL_NEW", STATUS: "CONTROLLED", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1" }
+          ],
+          LC_DETAILS: [
+            { _state: "before", LINK_ID: "5007", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1", EL_AMOUNT: "160K", EXPIRY: "2027-06-30", UNUTILIZED: "90K", LC_LIABILITY: "120K" },
+            { _state: "after", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1", EL_AMOUNT: "160K", EXPIRY: "2027-06-30", UNUTILIZED: "90K", LC_LIABILITY: "120K" }
+          ],
+          PARTY_DETAILS: [
+            { _state: "before", PARTY_ID: "8121", LINK_ID: "5007", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1", PARTY_SCOPE: "XL", PARTY_ROLE: "MANUFACTURER", PARTY_NAME: "Delta Components" },
+            { _state: "before", PARTY_ID: "8122", LINK_ID: "5007", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1", PARTY_SCOPE: "XL", PARTY_ROLE: "PRESENTING_BANK", PARTY_NAME: "PQR Bank" },
+            { _state: "after", PARTY_ID: "8123", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1", PARTY_SCOPE: "XL", PARTY_ROLE: "MANUFACTURER", PARTY_NAME: "Delta Components" },
+            { _state: "after", PARTY_ID: "8124", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1", PARTY_SCOPE: "XL", PARTY_ROLE: "PRESENTING_BANK", PARTY_NAME: "PQR Bank" }
+          ],
+          BILL_DETAILS: [
+            { _state: "before", BILL_ID: "7011", LINK_ID: "5007", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1", BILL_AMOUNT: "30K USD", BILL_STATUS: "INPUT", BILL_OUTSTANDING: "30K" },
+            { _state: "after", BILL_ID: "7012", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "1", BILL_AMOUNT: "30K USD", BILL_STATUS: "CONTROLLED", BILL_OUTSTANDING: "30K" }
+          ]
+        }
+      },
+      {
+        number: "8",
+        tab: "XL Bill #2 Update",
+        amount: "CLM-7002 / 35K",
+        title: "8. XL Bill #2 Update",
+        description: "The second bill is updated. The CLAIM_ID stays CLM-7002, but CLAIM_VERSION moves from 1 to 2.",
+        badges: ["VERSION 4", "CLAIM_ID CLM-7002", "CLAIM_VERSION 2"],
+        metrics: { "EL amount": "160K", "Unutilized": "85K", "LC liability": "120K", "Bill outstanding": "35K" },
+        rule: "A bill update does not create a new CLAIM_ID. It creates a new CLAIM_VERSION for the same claim.",
+        explanations: [
+          ["Update cycle", "Lifecycle 5008 carries the changed bill data for CLM-7002 before control."],
+          ["After Control", "Instrument snapshots are copied with CLAIM_ID = CLM-7002 and CLAIM_VERSION = 2."],
+          ["Amount", "The bill increases from 30K to 35K, so unutilized reduces from 90K to 85K."]
+        ],
+        tables: {
+          INSTRUMENT: [
+            { _state: "after", INSTRUMENT_ID: "1001", VERSION: "4", LATEST_LIFECYCLE_ID: "5008", REFERENCE_NO: "EL-2026-0001", BRANCH_NAME: "Mumbai Main" }
+          ],
+          LIFE_CYCLE: [
+            { _state: "before", LCY_ID: "5008", INSTRUMENT_ID: "1001", EVENT: "BILL_UPDATE", STATUS: "INPUT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2" },
+            { _state: "after", LCY_ID: "5008", INSTRUMENT_ID: "1001", EVENT: "BILL_UPDATE", STATUS: "CONTROLLED", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2" }
+          ],
+          LC_DETAILS: [
+            { _state: "before", LINK_ID: "5008", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2", EL_AMOUNT: "160K", EXPIRY: "2027-06-30", UNUTILIZED: "85K", LC_LIABILITY: "120K" },
+            { _state: "after", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2", EL_AMOUNT: "160K", EXPIRY: "2027-06-30", UNUTILIZED: "85K", LC_LIABILITY: "120K" }
+          ],
+          PARTY_DETAILS: [
+            { _state: "before", PARTY_ID: "8125", LINK_ID: "5008", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2", PARTY_SCOPE: "XL", PARTY_ROLE: "MANUFACTURER", PARTY_NAME: "Delta Components" },
+            { _state: "before", PARTY_ID: "8126", LINK_ID: "5008", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2", PARTY_SCOPE: "XL", PARTY_ROLE: "NEGOTIATING_BANK", PARTY_NAME: "LMN Bank" },
+            { _state: "after", PARTY_ID: "8127", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2", PARTY_SCOPE: "XL", PARTY_ROLE: "MANUFACTURER", PARTY_NAME: "Delta Components" },
+            { _state: "after", PARTY_ID: "8128", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2", PARTY_SCOPE: "XL", PARTY_ROLE: "NEGOTIATING_BANK", PARTY_NAME: "LMN Bank" }
+          ],
+          BILL_DETAILS: [
+            { _state: "before", BILL_ID: "7013", LINK_ID: "5008", LINK_TYPE: "LIFE_CYCLE", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2", BILL_AMOUNT: "35K USD", BILL_STATUS: "UPDATE_INPUT", BILL_OUTSTANDING: "35K" },
+            { _state: "after", BILL_ID: "7014", LINK_ID: "1001", LINK_TYPE: "INSTRUMENT", VERSION: "4", CLAIM_ID: "CLM-7002", CLAIM_VERSION: "2", BILL_AMOUNT: "35K USD", BILL_STATUS: "UPDATED", BILL_OUTSTANDING: "35K" }
+          ]
         }
       }
     ];

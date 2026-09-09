@@ -1,0 +1,799 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Drawdown Technical flow</title><style>
+:root{--ink:#172e46;--muted:#52657a;--line:#dbe3ec;--blue:#245c96;--bg:#f2f5f9}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1800px;margin:auto;padding:32px 20px 60px}header{padding:0 0 25px}.eyebrow{color:var(--blue);font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase}h1{font-size:34px;line-height:1.2;letter-spacing:-.7px;margin:9px 0 14px}h2{font-size:23px;line-height:1.3;margin:0 0 12px}h3{font-size:17px;line-height:1.4;margin:0 0 10px}p{margin:0 0 12px}.lede{max-width:1050px;font-size:18px;color:var(--muted)}nav{display:flex;flex-wrap:wrap;gap:9px;margin-top:21px}nav a,button{padding:8px 13px;border:1px solid #bfcede;border-radius:6px;color:var(--blue);background:white;font:600 13px system-ui;text-decoration:none;cursor:pointer}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #397fcd;outline-offset:3px}.panel{padding:25px;background:white;border:1px solid var(--line);border-radius:12px;margin-bottom:22px}.sectionhead{display:flex;justify-content:space-between;align-items:baseline;gap:20px}.meta{font-size:12px;color:var(--muted)}.leadnote{color:var(--muted);max-width:1050px}.diagram{width:100%;min-width:0;overflow:visible}.diagram svg{display:block;width:100%;max-width:100%;min-width:0;height:auto}.ribbon{padding:15px 18px;background:#edf3fc;border-left:4px solid #4776b2;margin:16px 0 0}.cols{display:grid;grid-template-columns:1fr 1fr;gap:24px}.point{padding:16px 0;border-bottom:1px solid var(--line)}.point:last-child{border:0}.point p{color:var(--muted);margin:0}.num{font-size:12px;color:var(--blue);font-weight:700;letter-spacing:1px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}thead th{background:#f2f5fa;font-size:12px;color:var(--muted)}tbody th{font-weight:600;min-width:175px}code{font:12px/1.6 ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere}pre{background:#142a41;color:#e8eff8;padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:8px}pre code{font-size:13px}.note{font-size:13px;color:var(--muted);margin-top:13px}.example{font-size:19px;font-family:ui-monospace,monospace;letter-spacing:2px}.example strong{color:var(--blue)}details{background:#fff;border:1px solid var(--line);border-radius:10px;margin:13px 0}summary{padding:18px 23px;font-weight:650;cursor:pointer}details .inside{padding:0 23px 23px}.action{padding:20px 0;border-bottom:1px solid var(--line)}.action:last-child{border:0}ol{padding-left:23px}li{padding:4px 0}.decision{border-left:3px solid #d3a44d;padding-left:15px;margin-bottom:21px}.decision p{font-size:14px;color:var(--muted)}footer{font-size:12px;color:var(--muted);padding-top:10px}@media(max-width:760px){main{padding:24px 12px}.panel{padding:18px}h1{font-size:27px}.cols{grid-template-columns:1fr}.sectionhead{display:block}.lede{font-size:16px}}@media print{body{background:white}main{max-width:none;padding:0}nav,button{display:none}.panel,details{border:0;padding:10px 0}.diagram{overflow:visible}.diagram svg{min-width:0}.panel{break-inside:avoid}.cols{gap:20px}h1{font-size:27px}summary{padding:10px 0}details .inside{padding:0}a{color:inherit}}
+</style></head><body><main>
+<header><h1>Drawdown Technical flow</h1><nav aria-label="Document sections"><a href="#journey">End-to-end journey</a><a href="#statuses">Status handoffs</a><a href="#rollout">Rollout rule</a><a href="#decisions">Open decisions</a><a href="#technical">Technical detail</a><button type="button" id="print">Print / save PDF</button></nav></header>
+<section class="panel" id="journey"><div class="sectionhead"><h2>1 / The end-to-end journey</h2><span class="meta">Main path · rollout enabled · new or existing reference locked</span></div><p class="leadnote">Read down the lanes and follow arrows across systems. Dashed arrows show recurring polling; the Kafka response follows User Input Required.</p><div class="diagram"><svg viewBox="0 0 1740 2450" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="journey-title journey-desc"><title id="journey-title">Main end-to-end flow for rollout-enabled requests</title><desc id="journey-desc">ADS is shown left of IDR. After stage 7 IDR sends documents, bill reference number and Input ID to ADS. ADS sends discrepancy data to DB Lending via Kafka after DB Lending reaches User Input Required. Documents enter IDR and immediate classification is held for rollout-enabled requests. DB Lending polls IDR, initializes the request and sends it to TF3. InstrumentLockedEvent returns a bill reference, which DB Lending persists and sends to IDR Status API to enable classification. IDR uses Gemini Doc AI, then users review and verify in IDR UI. DB Lending polls the statuses. Sent to Processing system triggers Fetching Data, two IDR data calls and population of bill details. Only then does DB Lending set Completed and User Input Required. ADS supplies discrepancies on Kafka topic app.inputs. DB Lending runs maker–checker, sanctions/embargo and due diligence. No discrepancies sends the transaction to TF3 for N1; discrepancies close the transaction in DB Lending.</desc><defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#53677c" stroke-width="1.3"/></marker></defs><style>.lane{fill:#f5f7fb;stroke:#dae2eb}.jtitle{font:700 17px system-ui;fill:#172e46}.jtext{font:14px system-ui;fill:#52657a}.jtag{font:600 12px system-ui;fill:#245c96}.flow{fill:none;stroke:#53677c;stroke-width:1.8;marker-end:url(#arr)}.jl{font:12px system-ui;fill:#52657a}</style><g transform="translate(440 0)"><rect class="lane" x="15" y="10" width="390" height="2410" rx="12"/><text x="35" y="42" class="jtitle">IDR</text><text x="35" y="66" class="jtext">Owns documents, classification and review</text><rect class="lane" x="455" y="10" width="390" height="2410" rx="12"/><text x="475" y="42" class="jtitle">DB Lending</text><text x="475" y="66" class="jtext">Coordinates the input and bill workflow</text><rect class="lane" x="895" y="10" width="390" height="2410" rx="12"/><text x="915" y="42" class="jtitle">TF3</text><text x="915" y="66" class="jtext">Creates the reference and returns an event</text><rect x="35" y="95" width="350" height="91" rx="9" fill="#fff" stroke="#b9cada"/><text x="53" y="124" class="jtitle">1  Register document</text><text x="53" y="148" class="jtext">IDR UI · DB Lending UI · shared drive</text><text x="53" y="169" class="jtext">Valid Parent Ref → Document uploaded</text><path class="flow" d="M210 186V222"/><rect x="35" y="222" width="350" height="111" rx="9" fill="#eaf2ff" stroke="#b9cada"/><text x="53" y="251" class="jtitle">2  Apply rollout gate</text><text x="53" y="275" class="jtext">Branch + derived product + class</text><text x="53" y="296" class="jtext">Enabled = Yes: hold classification</text><text x="53" y="319" class="jtag">Wait for TF3 reference before classification</text><rect x="475" y="222" width="350" height="111" rx="9" fill="#fff" stroke="#b9cada"/><text x="493" y="251" class="jtitle">3  Poll IDR for records</text><text x="493" y="275" class="jtext">Cron → IDR Dashboard REST API</text><text x="493" y="296" class="jtext">Return only rollout-enabled records</text><text x="493" y="319" class="jtag">Every 10 seconds</text><path class="flow" d="M475 247H385"/><text x="409" y="235" class="jl">Read</text><path class="flow" d="M385 306H475"/><text x="410" y="295" class="jl">Results</text><path class="flow" d="M650 333V376"/><text x="475" y="358" class="jl">When status = Document uploaded</text><rect x="475" y="376" width="350" height="91" rx="9" fill="#fff" stroke="#b9cada"/><text x="493" y="405" class="jtitle">4  Initialize request</text><text x="493" y="429" class="jtext">Create/reuse input; initialize lifecycle</text><text x="493" y="450" class="jtext">Send RequestReceived to TF3</text><path class="flow" d="M825 413H915"/><text x="837" y="400" class="jl">Request</text><rect x="915" y="376" width="350" height="91" rx="9" fill="#edf7f3" stroke="#b9cada"/><text x="933" y="405" class="jtitle">5  Check request</text><text x="933" y="429" class="jtext">Create reference + lock, or lock existing</text><text x="933" y="450" class="jtext">Emit InstrumentLockedEvent</text><path class="flow" d="M1090 467V544H825"/><text x="916" y="531" class="jl">InstrumentLockedEvent + reference</text><rect x="475" y="505" width="350" height="106" rx="9" fill="#fff" stroke="#b9cada"/><text x="493" y="534" class="jtitle">6  Store reference &amp; release IDR</text><text x="493" y="558" class="jtext">Persist bill reference in DB Lending</text><text x="493" y="579" class="jtext">Send input, bill ref, IDR ID + version</text><text x="493" y="597" class="jtag">HandleTF3RefIdResponse Action set</text><path class="flow" d="M475 552H385"/><text x="411" y="536" class="jl">Write</text><rect x="35" y="505" width="350" height="106" rx="9" fill="#eaf2ff" stroke="#b9cada"/><text x="53" y="534" class="jtitle">7  Mark ready for classification</text><text x="53" y="558" class="jtext">IDR Status API updates request fields</text><text x="53" y="579" class="jtext">Status = Ready For Classification</text><path class="flow" d="M210 611V655"/><rect x="35" y="655" width="350" height="89" rx="9" fill="#fff" stroke="#b9cada"/><text x="53" y="684" class="jtitle">8  Classify document</text><text x="53" y="708" class="jtext">Send to Gemini Doc AI</text><text x="53" y="729" class="jtext">Receive classification output</text><path class="flow" d="M210 744V784"/><rect x="35" y="784" width="350" height="106" rx="9" fill="#fff" stroke="#b9cada"/><text x="53" y="813" class="jtitle">9  Review, extract &amp; verify</text><text x="53" y="837" class="jtext">Classification review in IDR UI</text><text x="53" y="858" class="jtext">Gemini AI extraction → IDR UI verification</text><text x="53" y="876" class="jtag">Detailed status sequence below</text><rect x="475" y="784" width="350" height="106" rx="9" fill="#edf7f3" stroke="#b9cada"/><text x="493" y="813" class="jtitle">Keep DB Lending in sync</text><text x="493" y="837" class="jtext">Same cron reads current IDR statuses</text><text x="493" y="858" class="jtext">HandleIDRStatus mirrors interim status</text><path class="flow" d="M385 839H475" stroke-dasharray="5 5"/><text x="408" y="827" class="jl">Poll</text><path class="flow" d="M210 890V938"/><rect x="35" y="938" width="350" height="89" rx="9" fill="#eaf2ff" stroke="#b9cada"/><text x="53" y="967" class="jtitle">10  Verification completed</text><text x="53" y="991" class="jtext">IDR status becomes</text><text x="53" y="1012" class="jtext">Sent to Processing system</text><path class="flow" d="M385 982H475" stroke-dasharray="5 5"/><text x="408" y="970" class="jl">Poll</text><rect x="475" y="938" width="350" height="89" rx="9" fill="#edf7f3" stroke="#b9cada"/><text x="493" y="967" class="jtitle">11a  Begin data retrieval</text><text x="493" y="991" class="jtext">IDR Status = Fetching Data</text><text x="493" y="1012" class="jtext">HandleIDRStatus starts data retrieval</text><rect x="915" y="655" width="350" height="154" rx="9" fill="#fff7e8" stroke="#b9cada"/><text x="933" y="684" class="jtitle">Other TF3 outcomes</text><text x="933" y="708" class="jtext">Create refid without locking:</text><text x="933" y="729" class="jtext">Input Locked event → Hold</text><text x="933" y="750" class="jtext">Later lock event → clear Hold, Processing</text><text x="933" y="771" class="jtext">Existing-ref lock → same main path.</text><path class="flow" d="M650 1027V1080"/><rect x="475" y="1080" width="350" height="95" rx="9" fill="#fff" stroke="#b9cada"/><text x="493" y="1109" class="jtitle">11b  Fetch classification data</text><text x="493" y="1134" class="jtext">Call IDR classification-data API</text><text x="493" y="1155" class="jtext">Receive classification results</text><rect x="35" y="1080" width="350" height="95" rx="9" fill="#eaf2ff" stroke="#b9cada"/><text x="53" y="1109" class="jtitle">Classification Data API</text><text x="53" y="1134" class="jtext">IDR returns document classification</text><path class="flow" d="M475 1110H385"/><path class="flow" d="M385 1150H475"/><path class="flow" d="M650 1175V1220"/><rect x="475" y="1220" width="350" height="95" rx="9" fill="#fff" stroke="#b9cada"/><text x="493" y="1249" class="jtitle">11c  Fetch extracted data</text><text x="493" y="1274" class="jtext">Call IDR extracted-data API</text><text x="493" y="1295" class="jtext">Receive extracted document data</text><rect x="35" y="1220" width="350" height="95" rx="9" fill="#eaf2ff" stroke="#b9cada"/><text x="53" y="1249" class="jtitle">Extracted Data API</text><text x="53" y="1274" class="jtext">IDR returns extracted document data</text><path class="flow" d="M475 1250H385"/><path class="flow" d="M385 1290H475"/><path class="flow" d="M650 1315V1360"/><rect x="475" y="1360" width="350" height="95" rx="9" fill="#fff" stroke="#b9cada"/><text x="493" y="1389" class="jtitle">11d  Populate bill details</text><text x="493" y="1414" class="jtext">Parties · Locations · Vessels</text><text x="493" y="1435" class="jtext">Bill document details</text><path class="flow" d="M650 1455V1500"/><rect x="475" y="1500" width="350" height="100" rx="9" fill="#edf7f3" stroke="#b9cada"/><text x="493" y="1529" class="jtitle">11e  Complete data capture</text><text x="493" y="1554" class="jtext">IDR Status = Completed</text><text x="493" y="1575" class="jtext">Bill Data Capture Status =</text><text x="493" y="1596" class="jtext">User Input Required</text></g><rect class="lane" x="15" y="10" width="390" height="2410" rx="12"/><text x="35" y="42" class="jtitle">ADS</text><text x="35" y="66" class="jtext">Receives documents; returns discrepancy data</text>
+<rect x="35" y="505" width="350" height="106" rx="9" fill="#f1edf9" stroke="#b9cada"/><text x="53" y="534" class="jtitle">7a  Receive documents from IDR</text><text x="53" y="558" class="jtext">Documents + bill reference number</text><text x="53" y="579" class="jtext">+ Input ID</text><text x="53" y="597" class="jtag">Sent after stage 7 completes</text>
+<path class="flow" d="M475 565H385"/><text x="408" y="552" class="jl">Send</text>
+<path class="flow" d="M210 611V1650"/>
+<rect x="35" y="1650" width="350" height="105" rx="9" fill="#f1edf9" stroke="#b9cada"/>
+<text x="53" y="1678" class="jtitle">Pre authorised</text><text x="53" y="1702" class="jtitle">Discrepancy details</text><text x="53" y="1730" class="jtext">ADS publishes via Kafka: app.inputs</text>
+<path d="M385 1700H915" fill="none" stroke="#8057a5" stroke-width="2" marker-end="url(#arr)"/><text x="495" y="1685" class="jl">Kafka: app.inputs · discrepancy details</text>
+<path class="flow" d="M1090 1600V1650"/>
+<rect x="915" y="1650" width="350" height="105" rx="9" fill="#f1edf9" stroke="#b9cada"/>
+<text x="933" y="1678" class="jtitle">12  Receive ADS discrepancies</text><text x="933" y="1705" class="jtext">After Bill Data Capture Status becomes</text><text x="933" y="1728" class="jtext">User Input Required</text>
+
+<path class="flow" d="M1090 1755V1810"/>
+<rect x="915" y="1810" width="350" height="70" rx="9" fill="#fff" stroke="#b9cada"/><text x="933" y="1840" class="jtitle">13  Maker–checker</text><text x="933" y="1863" class="jtext">DB Lending</text>
+<path class="flow" d="M1090 1880V1920"/>
+<rect x="915" y="1920" width="350" height="70" rx="9" fill="#fff" stroke="#b9cada"/><text x="933" y="1950" class="jtitle">14  Sanctions / embargo</text>
+<path class="flow" d="M1090 1990V2030"/>
+<rect x="915" y="2030" width="350" height="70" rx="9" fill="#fff" stroke="#b9cada"/><text x="933" y="2060" class="jtitle">15  Due diligence</text>
+<path class="flow" d="M1090 2100V2140"/>
+<path d="M1090 2140L1250 2200L1090 2260L930 2200Z" fill="#fff7e8" stroke="#b9cada"/><text x="1010" y="2196" class="jtitle">16  Discrepancies</text><text x="1060" y="2220" class="jtitle">present?</text>
+<path class="flow" d="M1250 2200H1355"/><text x="1280" y="2185" class="jl">No</text>
+<rect x="1355" y="2160" width="350" height="85" rx="9" fill="#edf7f3" stroke="#b9cada"/><text x="1373" y="2190" class="jtitle">17a  Receive transaction for N1</text><text x="1373" y="2217" class="jtext">Sent from DB Lending to TF3</text>
+<path class="flow" d="M1090 2260V2320"/><text x="1110" y="2291" class="jl">Yes</text>
+<rect x="915" y="2320" width="350" height="70" rx="9" fill="#f8eeee" stroke="#b9cada"/><text x="933" y="2348" class="jtitle">17b  Close transaction</text><text x="933" y="2372" class="jtext">In DB Lending</text>
+</svg></div><div class="ribbon"><strong>The key dependency:</strong> for a rollout-enabled request, IDR holds initial classification until DB Lending supplies the Input ID and bill reference and sets the request to Ready For Classification.</div></section>
+<section class="panel" id="statuses"><h2>2 / What each status means—and what DB Lending does</h2><p class="leadnote">Every polling result is handled individually. Document uploaded initializes the request. Later statuses go to HandleIDRStatus; Sent to Processing system starts data retrieval and population before the final completion updates.</p><div class="tablewrap"><table><thead><tr><th>IDR status</th><th>What caused it</th><th>DB Lending Action set</th><th>Result in DB Lending</th></tr></thead><tbody><tr><th scope="row">Document uploaded</th><td>Inserted directly with this status on document upload</td><td><code>RequestInitated</code></td><td>Initialize input and lifecycle; notify TF3</td></tr><tr><th scope="row">Ready For Classification</th><td>IDR Status API stores input and bill reference</td><td><code>HandleIDRStatus</code></td><td>Set DB Lending IDR status to the same value</td></tr><tr><th scope="row">Pending Classification Review</th><td>Gemini classification output received</td><td><code>HandleIDRStatus</code></td><td>Set DB Lending IDR status to the same value</td></tr><tr><th scope="row">Data Extraction</th><td>Classification review completed in IDR UI</td><td><code>HandleIDRStatus</code></td><td>Set DB Lending IDR status to the same value</td></tr><tr><th scope="row">Pending Data Verification</th><td>Data extraction completed</td><td><code>HandleIDRStatus</code></td><td>Set DB Lending IDR status to the same value</td></tr><tr><th scope="row">Sent to Processing system</th><td>Data verification completed in IDR UI</td><td><code>HandleIDRStatus</code></td><td>Set IDR Status = Fetching Data → retrieve classification and extracted data → populate bill details → set Completed and User Input Required</td></tr><tr><th scope="row">Unknown / unrecognized status</th><td>Status not supported by the routing rules</td><td>No Action set</td><td>Skip and log the record; continue processing remaining records.</td></tr></tbody></table></div><p class="note">These are distinct fields: <strong>IDR request status</strong> is owned by IDR; <strong>DB Lending IDR status</strong> tracks that progress; <strong>Bill Data Capture Status</strong> becomes User Input Required at the final step. On Sent to Processing system, DB Lending first sets its IDR Status to Fetching Data. Only after both IDR data calls and population succeed does it set IDR Status = Completed and Bill Data Capture Status = User Input Required. IDR’s own request status remains Sent to Processing system.</p><p class="note">Polling reads current records. It may skip intermediate transitions unless the API provides history; delivery and ordering semantics are still to be defined.</p></section>
+<section class="panel" id="rollout"><h2>3 / How IDR decides to hold classification</h2><div class="cols"><div><p>Match the request against <strong>DB Lending Rollout Config</strong>:</p><table><thead><tr><th>Config column</th><th>Request value used</th></tr></thead><tbody><tr><td>Branch code</td><td>Request branch code</td></tr><tr><td>Product code</td><td>First two characters of Parent Ref</td></tr><tr><td>Class code</td><td>Third character of Parent Ref</td></tr><tr><td>Enabled flag</td><td>Yes → hold initial classification</td></tr></tbody></table></div><div><p class="num">ILLUSTRATIVE EXAMPLE</p><p class="example"><strong>EL</strong>T2600033</p><p>Parent Ref <code>ELT2600033</code> yields product <strong>EL</strong> and class <strong>T</strong>. IDR uses these together with the request’s branch code to find the config row.</p><p class="note">The third-character interpretation follows the last clarification. Disabled or no matching configuration → continue normal IDR classification. Enabled matching configuration → hold initial classification for the DB Lending/TF3 flow. Configuration lookup errors also continue normal IDR classification. Parent Ref must contain at least 10 characters. If Parent Ref is missing or shorter than 10 characters, reject insertion. No IDR request record or technical-error status is created. Apply validation to all three upload channels.</p></div></div></section>
+<section class="panel" id="decisions"><h2>4 / Open questions for the next review</h2><p class="leadnote">Only unresolved decisions are listed here. Confirmed decisions are incorporated into the flow, status rules and technical specification.</p><div class="cols"><div><div class="decision"><h3>Timezone</h3><p>Choose the timezone and datetime format for UpdatedDateTime and fetch_records_after. Explicitly deferred.</p></div><div class="decision"><h3>Failed-record retry and polling cursor</h3><p>Define automatic retry/recovery for durably captured failed records. Capture before checkpoint advancement is agreed; the retry policy remains explicitly deferred.</p></div><div class="decision"><h3>Missed IDR updates</h3><p>Define detection and recovery for missed fire-and-forget IDR Status API updates. Delivery acknowledgment, retry or reconciliation remain open.</p></div><div class="decision"><h3>Polling operation</h3><p>Cron runs every 10 seconds and uses a persistent checkpoint per polling scope. Define the first-run timestamp, pagination and safe timestamp-boundary implementation, duplicate/stale handling and whether intermediate history is required.</p></div></div><div><div class="decision"><h3>TF3 event contracts</h3><p>Define RequestReceived payload, delivery/acknowledgment, duplicate handling, and event correlation to IDR ID, version and Input ID. External TF3 rollback/recovery mechanics remain open.</p></div><div class="decision"><h3>API and AI integration details</h3><p>Confirm the classification-data and extracted-data API names, request identifiers and payloads, whether the two reads run sequentially or in parallel, field mappings/merge rules and the transaction visibility of Fetching Data. Define API endpoints, methods, authentication and error contracts; Gemini payloads, IDR pickup scheduling and failure handling.</p></div><div class="decision"><h3>Remaining data and transport details</h3><p>Define Parent Ref whitespace/case/additional format rules, the storage field for DB Lending Hold/Processing, and the processing-system recipient/transport if required.</p></div><div class="decision"><h3>ADS integration</h3><p>Define handoff transport/acknowledgment, schema and correlation for app.inputs, delivery/retry handling, and detailed maker–checker, screening, due diligence and N1 contracts. The business sequence and discrepancy branch are confirmed.</p></div></div></div></section>
+<section id="technical"><h2>5 / Technical detail for implementation</h2><p class="leadnote">Expand these sections during a technical review. Action names retain the supplied spelling.</p>
+<details><summary>ADS integration · document handoff and Kafka discrepancies</summary><div class="inside"><table><thead><tr><th>Handoff</th><th>Trigger / timing</th><th>Data</th></tr></thead><tbody><tr><td>IDR → ADS</td><td>After stage 7 completes and IDR marks the request Ready For Classification</td><td>Documents, bill reference number from the existing TF Reference column, and Input ID</td></tr><tr><td>ADS → Kafka topic → DB Lending</td><td>After DB Lending Bill Data Capture Status becomes User Input Required</td><td>Pre authorised discrepancy details; Kafka topic app.inputs; correlation identifiers and schema TBD</td></tr></tbody></table><p class="note">The journey shows ADS discrepancy details arriving after User Input Required. Kafka topic is app.inputs. DB Lending then performs maker–checker, sanctions/embargo and due diligence in order. If there are no discrepancies, send the transaction to TF3 for N1; otherwise close it in DB Lending. Correlation, technical contracts, stage-specific statuses and buffering/timing enforcement remain to be defined. Whether ADS handoff requires an acknowledgment before IDR continues, and its failure/retry behavior, remain open.</p></div></details>
+<details><summary>Post-ADS processing · maker–checker to N1 or closure</summary><div class="inside"><ol><li>Receive pre authorised discrepancy details from ADS on Kafka topic <code>app.inputs</code>.</li><li>Complete maker–checker in DB Lending.</li><li>Perform sanctions/embargo checks.</li><li>Perform due diligence.</li><li>Evaluate discrepancies: <strong>none → send to TF3 for N1</strong>; <strong>present → close the transaction in DB Lending</strong>.</li></ol><p class="note">The earlier IDR Status = Completed means document data capture is complete; it is not the end of the overall transaction. Detailed check outcomes, status names, the final discrepancy evaluation rules and the TF3 N1 handoff contract remain unspecified.</p></div></details>
+<details><summary>TF3 outcomes · proceed or hold</summary><div class="inside"><div class="tablewrap"><table><thead><tr><th>TF3 outcome</th><th>Event</th><th>DB Lending behavior</th><th>Release IDR classification?</th></tr></thead><tbody><tr><td>Create reference and lock</td><td><code>InstrumentLockedEvent</code></td><td>Invoke <code>HandleTF3RefIdResponse</code> with the new reference.</td><td>Yes — IDR Status API sets Ready For Classification.</td></tr><tr><td>Lock using an existing reference</td><td><code>InstrumentLockedEvent</code></td><td>Invoke <code>HandleTF3RefIdResponse</code> with the existing reference.</td><td>Yes — same IDR Status API update.</td></tr><tr><td>Create reference without locking</td><td><code>Input Locked event</code></td><td>Set DB Lending record status to <strong>Hold</strong>.</td><td>No — do not call IDR Status API to proceed with classification.</td></tr></tbody></table></div><p class="note">Hold is the DB Lending record status. A later InstrumentLockedEvent invokes HandleTF3RefIdResponse. Clearing Hold and setting the DB Lending record status to Processing happen inside that Action set. The exact record-status storage field remains to be defined; it is not assumed to be the mirrored IDR status or Bill Data Capture Status.</p></div></details><details><summary>Action sets · ordered execution and rollback boundary</summary><div class="inside"><article class="action"><h3>RequestInitated Action set</h3><ol><li>Create input — find input by IDR ID + version; use it if found, otherwise create it</li><li>createChannel Initated</li><li>Create life cycle</li><li>CopyInstrumentToLifeCycle</li><li>InheritDefaultEL attributes</li><li>SendRequestReceivedToTF3</li></ol></article><article class="action"><h3>HandleTF3RefIdResponse Action set</h3><p>For a held record, this Action set also clears Hold and sets DB Lending record status to Processing. Clearing Hold, setting Processing and persisting the bill reference form one atomic database unit. No relative order is required between those changes: they commit or roll back together. The IDR API call retains the agreed fire-and-forget boundary.</p><ol><li>Persist bill reference number</li><li>Prepare IDR request payload — Input ID from RequestInitated, bill reference number, IDR ID and version</li><li>Invoke IDR Status API</li></ol></article><article class="action"><h3>HandleIDRStatus</h3><p>For each supported interim status, update DB Lending’s IDR status. For Sent to Processing system: set DB Lending IDR Status to Fetching Data; call the IDR classification-data and extracted-data APIs; populate parties, locations, vessels and bill document details; then set IDR Status to Completed and Bill Data Capture Status to User Input Required. The existing HandleIDRStatus branch starts this flow; no additional Action set name has been specified. If either read or population fails, do not mark completion; apply the agreed per-record rollback/logging and continue processing other records. The transaction boundary and visibility of Fetching Data, field mappings and merge rules remain open.</p></article><p class="note">Failure policy: roll back DB Lending database changes on failure, preserving pre-existing data such as a reused input. IDR Status API is fire-and-forget for now and is outside the guaranteed rollback boundary. If a record’s Action set fails, log that failure and continue processing other records in the batch. Rollback is scoped to the failed record’s Action set, not the entire batch. Full cross-system atomicity is not guaranteed. Missed-update detection/recovery and TF3 delivery behavior remain follow-ups.</p></div></details>
+<details open id="cron-checkpoint"><summary>How the 10-second cron works · persistent polling checkpoint</summary><div class="inside"><p><strong>The schedule and the checkpoint are different.</strong> Every 10 seconds is when DB Lending attempts a fetch. The checkpoint records how far IDR updates have been safely received. Never calculate fetch_records_after as “now minus 10 seconds.”</p>
+<h3>Persistent state in DB Lending</h3><p>Keep one checkpoint per polling scope: product code plus a normalized branch-code list. A checkpoint must survive service restarts. Changes to that scope require an explicit starting-point decision.</p><div class="tablewrap"><table><thead><tr><th>Suggested checkpoint field</th><th>Purpose</th></tr></thead><tbody><tr><td>polling_scope</td><td>Identifies the product and branch set being polled.</td></tr><tr><td>fetch_checkpoint</td><td>Last safely captured IDR checkpoint. Sent as fetch_records_after on the next call.</td></tr><tr><td>last_attempt_at</td><td>Operational timestamp for the latest attempt; never used as the data-fetch checkpoint.</td></tr><tr><td>last_success_at</td><td>Operational timestamp for the latest completed fetch/capture.</td></tr></tbody></table></div>
+<h3 style="margin-top:22px">Run sequence</h3><ol>
+<li><strong>Start every 10 seconds.</strong> Allow only one active fetch per polling scope, using a lock or lease. If the previous fetch is still running, skip this tick rather than overlap it.</li>
+<li><strong>Read the saved checkpoint.</strong> Send product_code, branch_codes and fetch_records_after = saved fetch_checkpoint to IDR Dashboard API. The initial checkpoint for a new scope remains to be agreed.</li>
+<li><strong>IDR returns eligible updates and next_checkpoint.</strong> IDR applies the current branch, product, rollout-enabled and UpdatedDateTime filters. IDR determines the checkpoint using its own data boundary, not DB Lending's clock.</li>
+<li><strong>Receive the complete result window.</strong> If results are paginated, fetch every page for the same window before advancing the checkpoint. Pagination details remain open.</li>
+<li><strong>Capture the results durably in DB Lending.</strong> Save enough of each returned record to process it after a restart. Persist the captured batch and its next_checkpoint together in one database transaction. An inbox/batch table is a suggested implementation; physical schema is not prescribed.</li>
+<li><strong>Advance only after durable capture.</strong> Commit fetch_checkpoint = next_checkpoint together with the records. If fetching, validation or persistence fails, leave the saved checkpoint unchanged and log the failure.</li>
+<li><strong>Process captured records independently.</strong> Route each status to its Action set. Skip and log unknown statuses. On Action set failure, roll back that record's local changes, retain its failure information, log it and continue with other records. Automatic retry policy remains open.</li>
+<li><strong>Use the persisted checkpoint on the next tick.</strong> After a restart or delay, resume from this value. Retain pending/failed captured records for recovery; never equate fetching a record with successfully processing its Action set.</li>
+</ol>
+<div class="ribbon"><strong>Advancement rule:</strong> the fetch checkpoint means “safely captured in DB Lending,” not “all Action sets succeeded.” This allows the fetch checkpoint to advance without dropping failed records. Durable capture must exist before enabling this behavior.</div>
+<h3 style="margin-top:22px">Example: a delayed run</h3><p>The saved checkpoint is <strong>10:00:00</strong>. DB Lending is delayed and next runs at <strong>10:00:35</strong>. It still requests updates after <strong>10:00:00</strong>. If IDR returns next_checkpoint <strong>10:00:34</strong>, DB Lending stores the complete results and that checkpoint together. The following request starts after <strong>10:00:34</strong>. Times are illustrative; timezone remains open.</p>
+<h3 style="margin-top:22px">Failure and boundary rules</h3><ul>
+<li><strong>API timeout or incomplete pages:</strong> retain the old checkpoint; fetch again on the next run.</li>
+<li><strong>Database failure during capture:</strong> roll back the captured batch and checkpoint together.</li>
+<li><strong>Crash after capture:</strong> the saved records remain available even though the checkpoint has advanced.</li>
+<li><strong>Empty results:</strong> advance only if IDR explicitly returns a valid next_checkpoint certifying the completed window; never substitute local time.</li>
+<li><strong>Same UpdatedDateTime:</strong> IDR must not advance past a timestamp while eligible records at that timestamp remain uncaptured. A page's maximum timestamp alone is not a safe checkpoint. Stable window/pagination and transaction-visibility semantics must be defined to prevent omissions.</li>
+<li><strong>Repeated or stale records:</strong> define deduplication and ordering checks before processing so initialization is not repeated and a newer status is not overwritten. The exact key/revision strategy remains open.</li>
+</ul><p class="note">The agreed request filter remains UpdatedDateTime &gt; fetch_records_after. next_checkpoint is an IDR-issued datetime through which the complete eligible update window has been returned; its production implementation must make that promise safe. Checkpoint boundaries, initial value, timezone and automatic failed-record retries remain open. Current rollout filtering still applies: disabled records stop being returned, including in-progress records.</p></div></details>
+<details><summary>API responsibilities and payloads</summary><div class="inside"><div class="tablewrap"><table><thead><tr><th>IDR-owned API</th><th>Purpose</th><th>Contract</th></tr></thead><tbody><tr><th>IDR Dashboard API</th><td>Read / REST polling</td><td>DB Lending cron supplies product code, branch-code list and fetch-records-after datetime. IDR returns only matching records whose rollout config is enabled, deriving product/class from Parent Ref and checking config with branch code. Results include IDR ID, version, product code and status, together with an IDR-issued next_checkpoint for the completed fetch window.</td></tr><tr><th>IDR Status API</th><td>Write / request update</td><td>DB Lending sends Input ID, bill reference number, IDR ID and version. IDR writes Input ID and maps bill_reference_number to its existing TF Reference column, then sets Ready For Classification.</td></tr><tr><th>IDR Classification Data API*</th><td>Read / data retrieval</td><td>Called by DB Lending after setting Fetching Data; returns classification data for populating the bill.</td></tr><tr><th>IDR Extracted Data API*</th><td>Read / data retrieval</td><td>Called by DB Lending for data extracted from the document. Both responses are needed before completion. *Working names; contracts and identifiers TBD.</td></tr></tbody></table></div><div class="cols"><div><h3 style="margin-top:20px">Dashboard eligibility · resolved</h3><p>Match the supplied branch-code list, product code and UpdatedDateTime > fetch_records_after filter. For each candidate request, derive product from Parent Ref characters 1–2 and class from character 3. Return it only if a config row matches branch + product + class with enabled_flag = Yes. A disabled or absent config match is excluded. Evaluate the current rollout configuration on every poll: disabling it stops returning records immediately, including in-progress requests. DB Lending retains its last received status; disabling rollout does not imply cancellation in IDR.</p><h3 style="margin-top:20px">Dashboard request</h3><pre><code>{
+  "product_code": "&lt;product-code&gt;",
+  "branch_codes": ["&lt;branch-code-1&gt;", "&lt;branch-code-2&gt;"],
+  "fetch_records_after": "&lt;datetime&gt;"
+}</code></pre><h3>Dashboard response</h3><pre><code>{
+  "results": [{
+    "idr_id": "&lt;idr-id&gt;",
+    "version": "&lt;version&gt;",
+    "product_code": "&lt;product-code&gt;",
+    "status": "Document uploaded"
+  }],
+  "next_checkpoint": "&lt;IDR-issued-checkpoint-datetime&gt;"
+}</code></pre></div><div><h3 style="margin-top:20px">Status update request</h3><pre><code>{
+  "input_id": "&lt;input-from-RequestInitated&gt;",
+  "bill_reference_number": "&lt;TF3-refid&gt;",
+  "idr_id": "&lt;originating-idr-id&gt;",
+  "version": "&lt;originating-version&gt;"
+}</code></pre><p>The IDR Status API matches IDR ID + version, writes Input ID and the bill reference number into existing TF Reference, and sets <strong>Ready For Classification</strong>.</p><p class="note">Status is set by the operation; it is not an extra supplied payload field. Field aliases are proposed. The IDR Status API call is fire-and-forget for now; DB Lending does not wait for a processing acknowledgment. Missed-update recovery remains open. Endpoint paths, methods, authentication, payload types and other response/error contracts remain open.</p></div></div></div></details>
+<details><summary>Data model · IDR request and rollout configuration</summary><div class="inside"><h3>IDR request table</h3><div class="tablewrap"><table><thead><tr><th>Business column</th><th>Technical alias</th><th>Purpose / change</th></tr></thead><tbody><tr><td>IDR ID</td><td><code>idr_id</code></td><td>Request identifier</td></tr><tr><td>Version</td><td><code>version</code></td><td>Used with IDR ID to identify the request/input</td></tr><tr><td>Branch code</td><td><code>branch_code</code></td><td>Used in rollout matching</td></tr><tr><td>TF Reference</td><td><code>tf_reference_id</code></td><td>Existing column; stores the bill reference received from TF3</td></tr><tr><td>Parent Ref</td><td><code>parent_reference_id</code></td><td>Minimum 10 characters; characters 1–2 → product; character 3 → class</td></tr><tr><td>Status</td><td><code>status</code></td><td>Initially Document uploaded; lifecycle states above</td></tr><tr><td>UpdatedDateTime</td><td><code>UpdatedDateTime</code></td><td>Automatically refreshed whenever the request changes, including every status change; Dashboard filters UpdatedDateTime > fetch_records_after. Timezone remains open.</td></tr><tr><td>Input ID</td><td><code>input_id</code></td><td>New column; populated through IDR Status API</td></tr></tbody></table></div><h3 style="margin-top:24px">DB Lending Rollout Config · new table</h3><p><code>branch_code</code> · <code>product_code</code> · <code>class_code</code> · <code>enabled_flag</code></p><p class="note">Product and class are derived from Parent Ref for lookup. Dashboard filtering uses this derivation and an enabled rollout-config match; the request table needs no rollout flag. UpdatedDateTime refreshes on every request change, including status changes, and is used for incremental fetching. Timezone remains an explicit open question. Storage types, constraints, timezone and validation remain to be finalized.</p></div></details>
+<details><summary>Full requirements · machine-readable JSON for AI code generation</summary><div class="inside"><p class="note">Includes stated behavior, proposed aliases and unresolved questions. Resolve implementation-dependent questions before generating production code.</p><pre id="spec-view"></pre></div></details>
+</section><footer>Revision 40 · Stakeholder overview and technical specification · Self-contained HTML · No live system connections</footer>
+<script id="requirements" type="application/json">
+{
+  "title": "Drawdown Technical flow",
+  "revision": 40,
+  "systems": [
+    "ADS",
+    "IDR",
+    "DB Lending",
+    "TF3"
+  ],
+  "naming_assumptions": {
+    "idea_request_table": "IDR request table"
+  },
+  "upload_sources": [
+    "IDR UI",
+    "DB Lending UI",
+    "Shared drive"
+  ],
+  "tables": {
+    "idr_request": {
+      "owner": "IDR",
+      "columns": [
+        "idr_id",
+        "version",
+        "branch_code",
+        "tf_reference_id",
+        "parent_reference_id",
+        "status",
+        "UpdatedDateTime",
+        "input_id"
+      ],
+      "new_columns": [
+        "input_id"
+      ],
+      "initial_status": "Document uploaded",
+      "physical_names_and_types": "TBD",
+      "required_update_fields": [
+        "input_id",
+        "tf_reference_id",
+        "status"
+      ],
+      "bill_reference_storage": "Existing TF Reference column (technical alias tf_reference_id); no new column",
+      "display_names": {
+        "idr_id": "IDR ID",
+        "parent_reference_id": "Parent Ref",
+        "tf_reference_id": "TF Reference",
+        "UpdatedDateTime": "UpdatedDateTime"
+      },
+      "update_timestamp_column": "UpdatedDateTime",
+      "updated_datetime_behavior": "Automatically refresh whenever the request record changes, including each status change",
+      "updated_datetime_timezone": "OPEN \u2014 explicitly deferred by user",
+      "parent_ref_validation": {
+        "minimum_length": 10,
+        "example": "ELT2600033",
+        "example_product_code": "EL",
+        "example_class_code": "T",
+        "invalid_behavior": "Reject insertion; do not create an IDR request record",
+        "exact_format_beyond_length": "Not specified",
+        "applies_to": [
+          "IDR UI",
+          "DB Lending UI",
+          "Shared drive"
+        ]
+      }
+    },
+    "db_lending_rollout_config": {
+      "owner": "IDR",
+      "new_table": true,
+      "columns": [
+        "branch_code",
+        "product_code",
+        "class_code",
+        "enabled_flag"
+      ],
+      "lookup_key_status": "RESOLVED using Parent Ref derivation; third character interpretation stated",
+      "lookup": {
+        "branch_code": "request.branch_code",
+        "product_code": "first 2 characters of request.parent_reference_id",
+        "class_code": "third character of request.parent_reference_id",
+        "position_basis": "1-based",
+        "on_matching_enabled_yes": "Suppress classification",
+        "on_disabled_or_no_match": "Continue normal IDR classification flow",
+        "on_lookup_error": "Continue normal IDR classification flow"
+      }
+    }
+  },
+  "flow": [
+    {
+      "step": 1,
+      "action": "New document uploaded via any supported source"
+    },
+    {
+      "step": 2,
+      "action": "Insert IDR request record",
+      "status": "Document uploaded"
+    },
+    {
+      "step": 3,
+      "action": "Check rollout configuration before classification"
+    },
+    {
+      "step": 4,
+      "condition": "matching enabled_flag is Yes",
+      "action": "Suppress classification"
+    },
+    {
+      "step": 5,
+      "condition": "No or no match",
+      "action": "Continue normal IDR classification flow",
+      "certainty": "CONFIRMED"
+    }
+  ],
+  "apis": {
+    "declared": [
+      "IDR Dashboard API",
+      "IDR Status API",
+      "IDR Classification Data API (working name)",
+      "IDR Extracted Data API (working name)"
+    ],
+    "polling_owner": "IDR",
+    "polling_source": "idr_request",
+    "http_method": null,
+    "endpoint": null,
+    "request_fields": [
+      "product_code",
+      "branch_codes",
+      "fetch_records_after"
+    ],
+    "response": {
+      "results": "List of records in various statuses",
+      "required_fields": [
+        "idr_id",
+        "version",
+        "product_code",
+        "status"
+      ],
+      "field_aliases": "Proposed snake case; IDR ID is idr_id",
+      "next_checkpoint": {
+        "type": "datetime; timezone TBD",
+        "issuer": "IDR",
+        "meaning": "Safe inclusive upper boundary of a fully returned eligible update window; next request uses UpdatedDateTime > this boundary",
+        "boundary_implementation": "TBD: stable pagination, equal timestamps and transaction visibility must not cause omissions",
+        "not_safe": "Maximum timestamp from an incomplete page or DB Lending local now"
+      }
+    },
+    "polling_api": "IDR Dashboard API",
+    "interface_style": "REST",
+    "polling_operation": "Fetch records from IDR request table",
+    "status_update": {
+      "name": "IDR Status API",
+      "owner": "IDR",
+      "caller": "DB Lending",
+      "distinct_from": "IDR Dashboard API",
+      "request_fields": [
+        "input_id",
+        "bill_reference_number",
+        "idr_id",
+        "version"
+      ],
+      "match_key": [
+        "idr_id",
+        "version"
+      ],
+      "writes": {
+        "input_id": "Input ID from RequestInitated",
+        "status": "Ready For Classification",
+        "tf_reference_id": "bill_reference_number from request payload (new or existing TF3 reference)"
+      },
+      "http_method": null,
+      "endpoint": null,
+      "response": "TBD",
+      "payload_to_column_mapping": {
+        "input_id": "input_id",
+        "bill_reference_number": "tf_reference_id"
+      },
+      "delivery_mode": "Fire-and-forget (interim decision)",
+      "processing_acknowledgment": "Not awaited",
+      "missed_update_recovery": "Open follow-up"
+    },
+    "product_code_source": "First 2 characters of Parent Ref (same derivation as rollout lookup)",
+    "dashboard_eligibility": {
+      "branch_filter": "request.branch_code is in supplied branch_codes list",
+      "product_filter": "Parent Ref first 2 characters equal supplied product_code",
+      "time_filter": "request.UpdatedDateTime > fetch_records_after (strictly after supplied datetime)",
+      "rollout_filter": "Require matching enabled config row using request branch, Parent Ref characters 1\u20132 as product, character 3 as class",
+      "disabled_or_missing_config": "Exclude record",
+      "request_table_rollout_flag_required": false,
+      "config_evaluation": "Current configuration at each poll",
+      "in_flight_when_disabled": "Exclude, including already initialized/in-progress records; DB Lending stops receiving their updates"
+    },
+    "data_retrieval": {
+      "owner": "IDR",
+      "caller": "DB Lending",
+      "classification_api": "IDR Classification Data API (working name)",
+      "extracted_data_api": "IDR Extracted Data API (working name)",
+      "request_identifiers_and_schemas": "TBD",
+      "mode": "Request-response; returned data required",
+      "not_fire_and_forget": true
+    }
+  },
+  "polling": {
+    "caller": "DB Lending cron job",
+    "trigger": "Every 10 seconds",
+    "filter_semantics": "UpdatedDateTime > fetch_records_after, plus product, branch-list and current enabled rollout filters",
+    "cursor_persistence_and_advancement": "Persist checkpoint in DB Lending per product/normalized branch scope. Advance to IDR next_checkpoint only in the same transaction that durably captures all returned records for the completed window.",
+    "interval_seconds": 10,
+    "request_timestamp_source": "Saved fetch checkpoint; never now minus 10 seconds",
+    "concurrency": "Single active fetch per scope; skip tick if a fetch is still running",
+    "failure_behavior": "Retain previous checkpoint on API failure, incomplete pages or durable capture failure",
+    "processing_boundary": "Fetch checkpoint tracks durable receipt, not Action set success; captured pending/failed records remain available",
+    "first_run_checkpoint": "TBD",
+    "suggested_storage": {
+      "checkpoint_fields": [
+        "polling_scope",
+        "fetch_checkpoint",
+        "last_attempt_at",
+        "last_success_at"
+      ],
+      "record_capture": "Durable inbox/batch storage; physical schema TBD",
+      "transaction": "Persist completed batch and next_checkpoint atomically"
+    }
+  },
+  "tf3": {
+    "receives": "RequestReceived",
+    "sender": "DB Lending",
+    "action": "SendRequestReceivedToTF3",
+    "payload_and_acknowledgment": "TBD",
+    "outputs": [
+      {
+        "outcome": "Create refid and lock",
+        "event": "InstrumentLockedEvent",
+        "handler": "HandleTF3RefIdResponse Action set",
+        "bill_reference_source": "Newly created reference"
+      },
+      {
+        "outcome": "Create refid and do not lock",
+        "event": "Input Locked event",
+        "handler": "Set DB Lending record status to Hold",
+        "db_lending_record_status": "Hold",
+        "invoke_idr_status_api": false,
+        "release_classification": false,
+        "resume": {
+          "trigger": "Later InstrumentLockedEvent",
+          "action": "Invoke HandleTF3RefIdResponse Action set; clear Hold and set Processing inside that Action set",
+          "reference_source": "InstrumentLockedEvent reference",
+          "replacement_record_status": "Processing",
+          "status_change_owner": "HandleTF3RefIdResponse Action set"
+        }
+      },
+      {
+        "outcome": "Lock using an existing reference; do not create a new reference",
+        "reference_source": "Existing reference",
+        "event": "InstrumentLockedEvent",
+        "handler": "HandleTF3RefIdResponse Action set",
+        "bill_reference_source": "Existing reference"
+      }
+    ]
+  },
+  "open_questions": [
+    "Choose the timezone and datetime format for UpdatedDateTime and fetch_records_after. Explicitly deferred.",
+    "Define how durably captured failed records are retried/recovered. Durable capture before checkpoint advancement is required; no automatic retry policy has been agreed. Explicitly deferred.",
+    "Define detection and recovery for missed fire-and-forget IDR Status API updates. Delivery acknowledgment, retry or reconciliation remain open.",
+    "Define the initial checkpoint, safe IDR checkpoint boundaries (equal timestamps and transaction visibility), pagination, duplicate/stale handling and whether intermediate history is required.",
+    "Define RequestReceived payload, delivery/acknowledgment, duplicate handling, and event correlation to IDR ID, version and Input ID. External TF3 rollback/recovery mechanics remain open.",
+    "Define API endpoints, methods, authentication and error contracts; Gemini classification/extraction payloads, IDR pickup scheduling and failure handling.",
+    "Define Parent Ref whitespace/case/additional format rules, the storage field for DB Lending Hold/Processing, and the processing-system recipient/transport if required.",
+    "Define names/contracts and correlation identifiers for the two IDR data APIs, field mappings and overwrite/merge rules, and transaction boundary/visibility of Fetching Data.",
+    "Define ADS handoff transport/acknowledgment and failures, Kafka app.inputs schema/correlation, retry/duplicates and detailed stage statuses and any delivery/buffering coordination.",
+    "Define detailed maker\u2013checker, sanctions/embargo and due diligence outcomes, final discrepancy evaluation, stage statuses and TF3 N1 handoff contract.",
+    "Confirm classification-data and extracted-data API names, request identifiers/payloads and sequential versus parallel execution."
+  ],
+  "result_processing": {
+    "per_record": true,
+    "record_fields": [
+      "idr_id",
+      "version",
+      "product_code",
+      "status"
+    ],
+    "routing": [
+      {
+        "status": "Document uploaded",
+        "action_set": "RequestInitated Action set"
+      },
+      {
+        "status": "Ready For Classification",
+        "action_set": "HandleIDRStatus"
+      },
+      {
+        "status": "Pending Classification Review",
+        "action_set": "HandleIDRStatus"
+      },
+      {
+        "status": "Data Extraction",
+        "action_set": "HandleIDRStatus"
+      },
+      {
+        "status": "Pending Data Verification",
+        "action_set": "HandleIDRStatus"
+      },
+      {
+        "status": "Sent to Processing system",
+        "action_set": "HandleIDRStatus"
+      }
+    ],
+    "unknown_status_policy": {
+      "action": "Skip record and log unknown status",
+      "continue_batch": true,
+      "invoke_action_set": false
+    },
+    "action_set_failure_policy": {
+      "rollback_scope": "Failed record Action set database changes, respecting documented external-call boundary",
+      "log_failure": true,
+      "continue_remaining_records": true,
+      "stop_batch": false,
+      "failed_record_retry": "Explicitly deferred by user; no retry list or automatic retry agreed. Coordinate with polling cursor advancement."
+    }
+  },
+  "action_sets": [
+    {
+      "name": "RequestInitated Action set",
+      "ordered": true,
+      "atomic": true,
+      "scope": "Per matching record",
+      "actions": [
+        {
+          "order": 1,
+          "name": "Create input",
+          "lookup_key": [
+            "idr_id",
+            "version"
+          ],
+          "if_exists": "Use existing input",
+          "if_absent": "Create input"
+        },
+        {
+          "order": 2,
+          "name": "createChannel Initated"
+        },
+        {
+          "order": 3,
+          "name": "Create life cycle"
+        },
+        {
+          "order": 4,
+          "name": "CopyInstrumentToLifeCycle"
+        },
+        {
+          "order": 5,
+          "name": "InheritDefaultEL attributes"
+        },
+        {
+          "order": 6,
+          "name": "SendRequestReceivedToTF3",
+          "target": "TF3",
+          "event": "RequestReceived"
+        }
+      ],
+      "atomicity_implementation": "Full Action set rollback required; cross-system rollback/compensation mechanism TBD",
+      "failure_policy": {
+        "on_any_action_failure": "Roll back DB Lending database changes on failure",
+        "rollback_scope": "Changes made by the current Action set only; preserve pre-existing data",
+        "resume_from_failed_action": false,
+        "external_rollback_mechanism": "IDR Status API fire-and-forget is outside guaranteed rollback; TF3 handling remains TBD",
+        "retry_policy": "TBD",
+        "batch_behavior": "Log failed record and continue processing remaining records"
+      }
+    },
+    {
+      "name": "HandleTF3RefIdResponse Action set",
+      "trigger": "InstrumentLockedEvent",
+      "ordered": true,
+      "atomic": false,
+      "actions": [
+        {
+          "order": 1,
+          "name": "Persist bill reference number",
+          "owner": "DB Lending",
+          "value": "TF3 refid"
+        },
+        {
+          "order": 2,
+          "name": "Prepare IDR request payload",
+          "fields": [
+            "input_id",
+            "bill_reference_number",
+            "idr_id",
+            "version"
+          ],
+          "input_id_source": "RequestInitated Action set"
+        },
+        {
+          "order": 3,
+          "name": "Invoke IDR Status API",
+          "effect": "Update Input ID, bill reference number and Ready For Classification status"
+        }
+      ],
+      "atomicity_implementation": "Ordered local database work with rollback; fire-and-forget IDR call outside guaranteed rollback boundary",
+      "reference_source": "New or existing TF3 reference, supplied by InstrumentLockedEvent",
+      "failure_policy": {
+        "on_any_action_failure": "Roll back DB Lending database changes on failure",
+        "rollback_scope": "Changes made by the current Action set only; preserve pre-existing data",
+        "resume_from_failed_action": false,
+        "external_rollback_mechanism": "IDR Status API fire-and-forget is outside guaranteed rollback; TF3 handling remains TBD",
+        "retry_policy": "TBD",
+        "batch_behavior": "Log failed record and continue processing remaining records"
+      },
+      "local_database_atomic": true,
+      "internal_status_transition": {
+        "when": "Record is on Hold",
+        "clear_hold": true,
+        "set_record_status": "Processing",
+        "execution": "Inside Action set; part of local database rollback boundary",
+        "position_in_sequence": "No relative ordering requirement within the atomic database unit"
+      },
+      "atomic_database_unit": {
+        "operations": [
+          "Persist bill reference number",
+          "Clear Hold when applicable",
+          "Set record status to Processing on Hold release"
+        ],
+        "relative_order": "Not prescribed; commit or roll back together",
+        "external_idr_call": "Fire-and-forget, outside guaranteed database rollback"
+      }
+    },
+    {
+      "name": "HandleIDRStatus",
+      "ordered": true,
+      "atomic": true,
+      "scope": "Per returned record",
+      "trigger_statuses": [
+        "Ready For Classification",
+        "Pending Classification Review",
+        "Data Extraction",
+        "Pending Data Verification",
+        "Sent to Processing system"
+      ],
+      "rules": [
+        {
+          "when_status_in": [
+            "Ready For Classification",
+            "Pending Classification Review",
+            "Data Extraction",
+            "Pending Data Verification"
+          ],
+          "set_db_lending_field": "IDR status",
+          "value": "Same as returned IDR status"
+        },
+        {
+          "when_status_equals": "Sent to Processing system",
+          "execute_flow": "post_verification_data_fetch",
+          "steps": [
+            {
+              "order": 1,
+              "set_db_lending_fields": {
+                "IDR Status": "Fetching Data"
+              }
+            },
+            {
+              "order": 2,
+              "calls": [
+                "IDR Classification Data API",
+                "IDR Extracted Data API"
+              ],
+              "api_names": "Working labels",
+              "both_responses_required": true,
+              "relative_call_order": "Not prescribed"
+            },
+            {
+              "order": 3,
+              "populate": [
+                "Parties",
+                "Locations",
+                "Vessels",
+                "Bill document details"
+              ]
+            },
+            {
+              "order": 4,
+              "condition": "Both data calls and data population succeeded",
+              "set_db_lending_fields": {
+                "IDR Status": "Completed",
+                "Bill Data Capture Status": "User Input Required"
+              }
+            }
+          ]
+        }
+      ],
+      "failure_policy": {
+        "on_any_action_failure": "Roll back DB Lending database changes on failure",
+        "rollback_scope": "Changes made by the current Action set only; preserve pre-existing data",
+        "resume_from_failed_action": false,
+        "external_rollback_mechanism": "IDR Status API fire-and-forget is outside guaranteed rollback; TF3 handling remains TBD",
+        "retry_policy": "TBD",
+        "batch_behavior": "Log failed record and continue processing remaining records"
+      }
+    }
+  ],
+  "idr_lifecycle": {
+    "status_storage": "IDR request table.status",
+    "steps": [
+      {
+        "status": "Ready For Classification",
+        "action": "IDR picks transactions and sends to Gemini Doc AI for classification"
+      },
+      {
+        "trigger": "Classification output received",
+        "set_status": "Pending Classification Review"
+      },
+      {
+        "trigger": "Classification review completed in IDR UI",
+        "set_status": "Data Extraction"
+      },
+      {
+        "trigger": "Data extraction completed",
+        "set_status": "Pending Data Verification"
+      },
+      {
+        "trigger": "Data verification completed in IDR UI",
+        "set_status": "Sent to Processing system"
+      }
+    ],
+    "extraction_engine": "Gemini AI (also used for classification)",
+    "processing_transport": "TBD"
+  },
+  "resolved_decisions": [
+    {
+      "topic": "Initial status",
+      "decision": "Insert each new IDR request directly with status Document uploaded; this triggers RequestInitated when fetched by DB Lending."
+    },
+    {
+      "topic": "Third TF3 outcome",
+      "decision": "Lock using the reference already present; do not create a new reference."
+    },
+    {
+      "topic": "TF3 event routing",
+      "decision": "New-reference lock and existing-reference lock both emit InstrumentLockedEvent and invoke HandleTF3RefIdResponse. Input Locked event sets DB Lending record status Hold without calling IDR Status API to release classification."
+    },
+    {
+      "topic": "Bill reference storage",
+      "decision": "Store bill_reference_number from IDR Status API payload in the existing IDR TF Reference column; no new bill-reference column."
+    },
+    {
+      "topic": "Action set failure",
+      "decision": "On any action failure, stop and roll back the entire Action set, including completed actions."
+    },
+    {
+      "topic": "IDR Status API delivery and rollback boundary",
+      "decision": "Fire-and-forget for now; local DB Lending database actions roll back on failure. Full cross-system rollback is not guaranteed. Missed-update detection/recovery remains open."
+    },
+    {
+      "topic": "Dashboard eligibility",
+      "decision": "Request includes product code, branch-code list and fetch-records-after datetime. Filter records against enabled rollout configuration using branch and Parent Ref-derived product/class; no request-table rollout flag needed."
+    },
+    {
+      "topic": "Rollout disabled during processing",
+      "decision": "Stop returning updates through Dashboard API, including for in-progress records. No in-flight exception."
+    },
+    {
+      "topic": "Incremental timestamp filter",
+      "decision": "Rename request Date/time to UpdatedDateTime and Dashboard parameter to fetch_records_after. Return records where UpdatedDateTime is strictly greater than the supplied datetime."
+    },
+    {
+      "topic": "UpdatedDateTime refresh",
+      "decision": "Automatically refresh on every request change, including each status change. Timezone stays open."
+    },
+    {
+      "topic": "Terminal status mapping",
+      "decision": "Sent to Processing system first sets DB Lending IDR Status to Fetching Data. Retrieve both classification and extracted data and populate parties, locations, vessels and bill document details. Only then set Completed and User Input Required."
+    },
+    {
+      "topic": "Unknown status handling",
+      "decision": "Skip and log records with unknown statuses; continue processing the remaining records."
+    },
+    {
+      "topic": "Per-record failure isolation",
+      "decision": "On Action set failure, roll back that record within the agreed boundary, log its failure, and continue processing other records in the batch."
+    },
+    {
+      "topic": "Release from Hold",
+      "decision": "A later InstrumentLockedEvent invokes HandleTF3RefIdResponse. Clearing Hold and setting Processing occur inside this Action set, within its local database rollback boundary."
+    },
+    {
+      "topic": "Status after Hold",
+      "decision": "A later InstrumentLockedEvent invokes HandleTF3RefIdResponse. Clearing Hold and setting Processing occur inside this Action set, within its local database rollback boundary."
+    },
+    {
+      "topic": "Order of reference persistence and Hold release",
+      "decision": "Both belong to the same HandleTF3RefIdResponse atomic database unit; no relative ordering requirement."
+    },
+    {
+      "topic": "Rollout fallback",
+      "decision": "If the matching configuration is disabled or no matching configuration exists, IDR continues its normal classification flow."
+    },
+    {
+      "topic": "Classification gate lookup error",
+      "decision": "If IDR cannot read rollout configuration because of an error, continue normal IDR classification. This decision applies to the classification gate; Dashboard error handling is not changed."
+    },
+    {
+      "topic": "Parent Ref minimum length",
+      "decision": "Parent Ref requires at least 10 characters. Example ELT2600033 derives product EL and class T. Invalid values fail validation; insertion/error-record handling pending."
+    },
+    {
+      "topic": "Invalid Parent Ref handling",
+      "decision": "Reject insertion when Parent Ref validation fails. No IDR request record or technical-error status is created."
+    },
+    {
+      "topic": "Data extraction engine",
+      "decision": "Gemini AI performs data extraction as well as classification."
+    },
+    {
+      "topic": "Dashboard polling interval",
+      "decision": "DB Lending cron runs every 10 seconds."
+    },
+    {
+      "topic": "Persistent polling checkpoint",
+      "decision": "Use an IDR-issued next_checkpoint, persisted per polling scope in DB Lending only with durable capture of the complete fetched window. Run every 10 seconds; do not use now minus 10 seconds. Preserve the old checkpoint on fetch/capture failure."
+    }
+  ],
+  "deferred_decisions": [
+    {
+      "topic": "Failed-record retry",
+      "status": "Open",
+      "decision": "Keep retry handling open; no retry list or automatic retry selected."
+    }
+  ],
+  "post_verification_data_fetch": {
+    "trigger": "IDR Dashboard record status Sent to Processing system",
+    "handler": "HandleIDRStatus",
+    "steps": [
+      {
+        "order": 1,
+        "set_db_lending_fields": {
+          "IDR Status": "Fetching Data"
+        }
+      },
+      {
+        "order": 2,
+        "calls": [
+          "IDR Classification Data API",
+          "IDR Extracted Data API"
+        ],
+        "api_names": "Working labels",
+        "both_responses_required": true,
+        "relative_call_order": "Not prescribed"
+      },
+      {
+        "order": 3,
+        "populate": [
+          "Parties",
+          "Locations",
+          "Vessels",
+          "Bill document details"
+        ]
+      },
+      {
+        "order": 4,
+        "condition": "Both data calls and data population succeeded",
+        "set_db_lending_fields": {
+          "IDR Status": "Completed",
+          "Bill Data Capture Status": "User Input Required"
+        }
+      }
+    ],
+    "idr_request_status": "Remains Sent to Processing system",
+    "failure": "Do not mark completion; existing local rollback, record-level logging and batch continuation apply; retry TBD",
+    "transaction_boundary": "Detailed boundary and visibility of Fetching Data to be defined"
+  },
+  "ads_integration": {
+    "handoff": {
+      "source": "IDR",
+      "target": "ADS",
+      "trigger": "After stage 7 completes: request marked Ready For Classification",
+      "payload": [
+        "Documents",
+        "Bill reference number",
+        "Input ID"
+      ],
+      "bill_reference_source": "Existing IDR TF Reference column",
+      "transport_and_acknowledgment": "TBD"
+    },
+    "discrepancies": {
+      "source": "ADS",
+      "transport": "Kafka topic",
+      "target": "DB Lending",
+      "payload": "Pre authorised discrepancy details",
+      "timing": "Shown arriving after DB Lending Bill Data Capture Status becomes User Input Required",
+      "topic_name": "app.inputs",
+      "correlation_and_schema": "TBD",
+      "handler_and_status_effects": "Continue to maker\u2013checker, sanctions/embargo and due diligence; detailed stage statuses TBD",
+      "step_name": "Pre authorised Discrepancy details",
+      "timing_enforcement": "Buffering/delivery coordination not specified"
+    },
+    "classification_dependency": "No dependency on receipt of ADS discrepancy response specified; handoff acknowledgment behavior TBD"
+  },
+  "post_ads_processing": {
+    "owner": "DB Lending",
+    "trigger": "Receive ADS pre authorised discrepancy details via app.inputs",
+    "sequence": [
+      "Maker\u2013checker",
+      "Sanctions / embargo",
+      "Due diligence"
+    ],
+    "decision": {
+      "condition": "Discrepancies present after checks",
+      "if_no": {
+        "action": "Send transaction to TF3 for N1",
+        "target": "TF3"
+      },
+      "if_yes": {
+        "action": "Close transaction in DB Lending"
+      }
+    },
+    "idr_completed_meaning": "Document data capture complete, not overall transaction completion",
+    "detailed_statuses_and_contracts": "TBD"
+  }
+}
+</script><script>
+document.getElementById('spec-view').textContent=JSON.stringify(JSON.parse(document.getElementById('requirements').textContent),null,2);
+document.getElementById('print').addEventListener('click',()=>window.print());
+</script></main></body></html>
